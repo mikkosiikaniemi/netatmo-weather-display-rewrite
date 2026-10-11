@@ -21,10 +21,6 @@ function extractToken(req: express.Request): string | null {
     return header.trim();
   }
 
-  if (typeof req.query.token === 'string' && req.query.token.trim()) {
-    return req.query.token.trim();
-  }
-
   return null;
 }
 

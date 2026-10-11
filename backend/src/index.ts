@@ -9,6 +9,7 @@ import sensorRoutes = require('./routes/sensors');
 require('dotenv').config();
 
 const app = express();
+app.disable('x-powered-by');
 const PORT = process.env.PORT || 3001;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'local-netatmo-session-secret';
