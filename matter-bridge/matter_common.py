@@ -76,5 +76,7 @@ async def read_attribute(ws: ClientWebSocketResponse, node_id: int, attribute_pa
         "read_attribute",
         {"node_id": node_id, "attribute_path": attribute_path},
     )
-    result = data.get("result") or {}
-    return result.get("attribute_value")
+    result = data.get("result")
+    if isinstance(result, dict):
+        return result.get(attribute_path)
+    return result
