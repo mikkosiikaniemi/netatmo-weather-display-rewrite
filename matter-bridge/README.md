@@ -21,7 +21,7 @@ sensor widget exactly like the Apple Shortcuts flow.
    |        |
    |        | ws://127.0.0.1:5580/ws  rpc-like commands
    |        v
-   +-- collector.py  (reads 1/1026/0 temperature, 1/1029/0 humidity)
+   +-- collector.py  (reads 1/1026/0 temperature, 2/1029/0 humidity)
         |
         | POST /api/sensors/ingest  (X-Api-Token)
         v

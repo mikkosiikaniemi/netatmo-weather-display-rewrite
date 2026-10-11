@@ -27,7 +27,7 @@ class Config:
         self.node_id = int(os_env("NODE_ID", "1"))
         self.poll_interval = int(os_env("POLL_INTERVAL_SEC", "600"))
         self.temperature_path = os_env("TEMPERATURE_PATH", "1/1026/0")
-        self.humidity_path = os_env("HUMIDITY_PATH", "1/1029/0")
+        self.humidity_path = os_env("HUMIDITY_PATH", "2/1029/0")
         self.battery_path = os_env("BATTERY_PATH", "")
         self.verify_tls = os_env("VERIFY_TLS", "true").lower() != "false"
 
