@@ -2,6 +2,8 @@
 
 A weather display web application for presenting temperature information gathered by locally installed [Netatmo weather sensors](https://www.netatmo.com/en-eu/weather/weatherstation).
 
+Optionally, readings from an [IKEA TIMMERFLOTTE](https://www.ikea.com/) temperature/humidity sensor (a Matter-over-Thread device) can be displayed alongside the Netatmo data, provided the additional [requirements](#requirements) below are met.
+
 > **Note:** This is a complete rewrite of my earlier [netatmo-weather-display](https://github.com/mikkosiikaniemi/netatmo-weather-display) repository, rebuilt from the ground up with a React + TypeScript frontend and a Node.js + Express backend.
 
 
@@ -16,7 +18,7 @@ A weather display web application for presenting temperature information gathere
 - Visualization: Recharts for historical charts.
 - Styling: Tailwind CSS (with PostCSS/Autoprefixer) and custom CSS.
 - Backend API: Node.js + Express + TypeScript.
-- Integrations: Netatmo API (OAuth2 + station data), Yr weather forecast API, and sunrise/sunset calculation based on coordinates.
+- Integrations: Netatmo API (OAuth2 + station data), Yr weather forecast API, and sunrise/sunset calculation based on coordinates. Optional IKEA TIMMERFLOTTE (Matter-over-Thread) temperature/humidity readings via the sensor ingest API.
 - Deployment: one-command Bash deployment via `deploy.sh` (builds frontend and backend, then runs the backend that serves static frontend files in production).
 
 ## Requirements
@@ -25,6 +27,13 @@ A weather display web application for presenting temperature information gathere
 1. [Netatmo connect dev app](https://dev.netatmo.com/apps/createanapp) created (this is needed to authorize fetching the data via Netatmo API) — you will need to make note of the `client ID` and `client secret` under _App Technical Parameters_.
 1. Your latitude and longitude for weather forecast by Finnish Meteorological Institute and for sunrise/sunset times — get these by opening [Google Maps](https://www.google.com/maps) on desktop and right-clicking on the map; you can see the coordinates on the top of the popup. 
 1. [Node.js](https://nodejs.org/) and npm.
+1. _(Optional)_ To display readings from an IKEA TIMMERFLOTTE temperature/humidity sensor:
+   - the sensor already paired to your home and reachable by a Thread border router (Apple TV or HomePod), and
+   - one of:
+     - a **Raspberry Pi 4B** with 64-bit Raspberry Pi OS and Python 3.12+ running the included Matter bridge (see [`matter-bridge/README.md`](matter-bridge/README.md)), or
+     - an Apple device running a Shortcuts automation that reads the accessory and pushes to the ingest API.
+
+   The Raspberry Pi path additionally requires IPv6 enabled on the host, no IPv6 forwarding, and all devices (Pi, sensor, border router) on the same flat LAN/VLAN. Full details are in the [bridge prerequisites](matter-bridge/README.md#prerequisites).
 
 ## Installation
 
@@ -71,7 +80,7 @@ NETATMO_CLIENT_ID=...
 NETATMO_CLIENT_SECRET=...
 NETATMO_REDIRECT_URI=https://your-domain.com/auth/callback
 HISTORY_TIMEZONE=Europe/Helsinki
-# Shared token for the sensor ingest API (see "Sensor ingest API" below)
+# Shared token for the sensor ingest API (see "IKEA TIMMERFLOTTE sensor support" below)
 SENSOR_INGEST_TOKEN=generate-a-long-random-value
 # Optional forecast location override (otherwise first Netatmo station location is used)
 # FORECAST_LAT=60.192059
@@ -84,9 +93,16 @@ SENSOR_INGEST_TOKEN=generate-a-long-random-value
 - Keep your process running with a process manager like PM2 or systemd.
 - You can place Nginx in front for TLS and domain routing, but the app works with one Node process out of the box.
 
-## Sensor ingest API (e.g. IKEA TIMMERFLOTTE via Apple Shortcuts)
+## IKEA TIMMERFLOTTE sensor support (sensor ingest API)
 
-The backend exposes an ingest endpoint so external automations (for example an Apple Shortcuts automation reading a Matter/Home accessory such as the IKEA TIMMERFLOTTE temperature/humidity sensor) can push readings to the app. Readings are stored for 48 hours and served back through read endpoints.
+The app supports the **IKEA TIMMERFLOTTE** temperature/humidity sensor in addition to the Netatmo station. The sensor is a Matter-over-Thread device, so it is read through one of two paths and pushed to the backend's ingest API:
+
+| Path | Requirements | Notes |
+| --- | --- | --- |
+| **Raspberry Pi Matter bridge** (recommended) | Raspberry Pi 4B, 64-bit OS, Python 3.12+, sensor paired to your home, an Apple TV/HomePod Thread border router on the same LAN | Fully automatic (polls every 10 min). See [`matter-bridge/README.md`](matter-bridge/README.md). |
+| **Apple Shortcuts automation** | An Apple device and the sensor already in the Home app | No extra hardware; runs on a time-based automation. See [Apple Shortcuts automation](#apple-shortcuts-automation). |
+
+The ingest endpoint below is common to both paths and can also be used by any other sensor.
 
 ### Configuration
 
@@ -147,12 +163,14 @@ curl -X POST "https://your-domain.com/api/sensors/ingest" \
 
 Readings persist in `backend/data/sensor-readings.json` (gitignored), so history survives restarts.
 
-### Raspberry Pi controller (no Shortcuts / HomeKit needed)
+### Raspberry Pi controller (no Apple Shortcuts needed)
 
 Instead of Apple Shortcuts, a Raspberry Pi can run a Matter controller
 ([`matter-bridge/`](matter-bridge/README.md)) that reads the TIMMERFLOTTE directly
 over Thread (via an Apple TV/HomePod border router) and pushes readings to the same
-`/api/sensors/ingest` endpoint.
+`/api/sensors/ingest` endpoint. This path is fully automatic; see the
+[`matter-bridge` prerequisites](matter-bridge/README.md#prerequisites) for the
+required hardware, network, and Thread setup.
 
 ## Opalstack one-command updates from local machine
 
