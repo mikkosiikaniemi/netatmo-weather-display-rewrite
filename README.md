@@ -147,6 +147,13 @@ curl -X POST "https://your-domain.com/api/sensors/ingest" \
 
 Readings persist in `backend/data/sensor-readings.json` (gitignored), so history survives restarts.
 
+### Raspberry Pi controller (no Shortcuts / HomeKit needed)
+
+Instead of Apple Shortcuts, a Raspberry Pi can run a Matter controller
+([`matter-bridge/`](matter-bridge/README.md)) that reads the TIMMERFLOTTE directly
+over Thread (via an Apple TV/HomePod border router) and pushes readings to the same
+`/api/sensors/ingest` endpoint.
+
 ## Opalstack one-command updates from local machine
 
 You can deploy directly from your local machine to Opalstack with one command.

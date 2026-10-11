@@ -1,0 +1,16 @@
+[Unit]
+Description=Netatmo Timmerflotte sensor bridge
+After=matter-server.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/netatmo-matter-bridge
+EnvironmentFile=/opt/netatmo-matter-bridge/.env
+ExecStart=/opt/netatmo-matter-bridge/venv/bin/python /opt/netatmo-matter-bridge/collector.py
+Restart=always
+RestartSec=10
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

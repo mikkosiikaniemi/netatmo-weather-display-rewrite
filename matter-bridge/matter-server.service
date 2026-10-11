@@ -1,0 +1,14 @@
+[Unit]
+Description=Matter Server (python-matter-server)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/netatmo-matter-bridge/venv/bin/python -m matter_server.server --storage-path /var/lib/matter-server --paa-root-cert-dir /var/lib/matter-server/credentials --log-level info
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
