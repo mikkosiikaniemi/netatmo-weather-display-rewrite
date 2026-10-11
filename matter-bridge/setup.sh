@@ -81,6 +81,8 @@ if [ ! -f "$BRIDGE_DIR/.env" ]; then
 fi
 
 info "Creating Matter server storage"
+mkdir -p /data
+chmod 700 /data
 mkdir -p "$STORAGE_DIR" "$CREDS_DIR"
 
 info "Tuning IPv6 / multicast sysctls"

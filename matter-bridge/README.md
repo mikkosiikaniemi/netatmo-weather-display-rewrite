@@ -65,7 +65,10 @@ sudo bash matter-bridge/setup.sh
 This (idempotently) creates `/opt/netatmo-matter-bridge` with a Python 3.12 venv
 containing `python-matter-server[server]==8.1.2`, installs two systemd units
 (`matter-server.service`, `matter-bridge.service`), enables IPv6/multicast sysctls,
-and starts both services. Install logs go to `journalctl -u matter-server -f`.
+and starts both services. It also creates `/data`, where the Matter SDK keeps its
+on-disk key/value store (`/data/chip_*.ini`) — if that path does not exist the
+server crashes with `CHIP handle has not been initialized` before it ever binds
+port 5580. Install logs go to `journalctl -u matter-server -f`.
 
 ## Configure
 
@@ -126,6 +129,7 @@ sudo /opt/netatmo-matter-bridge/venv/bin/python /opt/netatmo-matter-bridge/colle
 
 ## Troubleshooting
 
+- **Restart loop with `CHIP handle has not been initialized` / `Failed to create temp file /data/chip_factory.ini`**: the Matter SDK's key/value store lives in `/data`, which must exist. `setup.sh` creates it; if you configured manually, run `sudo mkdir -p /data && sudo systemctl restart matter-server`.
 - **Service fails to start**: `journalctl -u matter-server -e`. Ensure the platform is 64-bit ARM, Python 3.12+, and the venv install completed (`/opt/netatmo-matter-bridge/venv/bin/python -m matter_server.server --help`).
 - **"No buffer space available" (OSError 105)**: the igmp sysctl in `/etc/sysctl.d/99-matter-server.conf` fixes this; re-run `sudo sysctl --system`.
 - **Device unreachable / reads time out**: confirm the Pi processes RIOs (`ip -6 route` should show a route toward the Thread network via the Apple TV); enforce `net.ipv6.conf.all.forwarding=0`, NetworkManager >= 1.42, and that router multicast filtering is off.
