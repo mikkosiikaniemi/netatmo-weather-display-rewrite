@@ -134,8 +134,10 @@ async def run(cfg: Config, once: bool) -> None:
                 await asyncio.wait_for(collect_once(session, cfg), timeout=cfg.collect_timeout)
             except asyncio.TimeoutError:
                 LOGGER.error("Poll timed out after %ss", cfg.collect_timeout)
+            except (MatterError, aiohttp.ClientError) as error:
+                LOGGER.error("Poll failed: %s", error)
             except Exception as error:
-                LOGGER.exception("Poll failed: %s", error)
+                LOGGER.exception("Unexpected poll error: %s", error)
             if session.closed:
                 session = aiohttp.ClientSession()
             await asyncio.sleep(cfg.poll_interval)
