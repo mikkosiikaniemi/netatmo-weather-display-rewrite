@@ -37,6 +37,13 @@ async def run(code: str, network_only: bool, ws_url: str) -> int:
         args = {"code": code}
         if network_only:
             args["network_only"] = True
+        fabric_label = os.getenv("FABRIC_LABEL")
+        if fabric_label:
+            try:
+                await request(ws, "fabric", "set_default_fabric_label", {"label": fabric_label})
+                LOGGER.info("Default fabric label set to '%s'", fabric_label)
+            except MatterError as error:
+                LOGGER.warning("Could not set fabric label: %s", error)
         LOGGER.info("Commissioning (network_only=%s)...", network_only)
         try:
             data = await request(ws, "commission", "commission_with_code", args)

@@ -84,6 +84,7 @@ sudo nano /opt/netatmo-matter-bridge/.env
 | `INGEST_TOKEN` | `SENSOR_INGEST_TOKEN` from `backend/.env` |
 | `DEVICE_NAME` | Label shown in the dashboard widget (e.g. `Timmerflotte hall`) |
 | `DEVICE_ID` | Stable id used to group readings (default `timmerflotte`) |
+| `FABRIC_LABEL` | Name this controller advertises to other ecosystems (Apple Home). Max 32 chars (default `Netatmo Bridge`) |
 | `NODE_ID` | Matter node id assigned during commissioning (set after commissioning) |
 | `POLL_INTERVAL_SEC` | Seconds between polls (default `600`) |
 | `BATTERY_PATH` | Optional `endpoint/cluster/attribute` for battery percent (see `0/47/16`); empty = skip |
@@ -111,6 +112,20 @@ in `.env`, then re-run.
 ```sh
 sudo systemctl restart matter-bridge
 ```
+
+### Naming the controller (Apple Home shows "Matter Test")
+
+Apple Home lists the extra fabric by its label. Because the Matter server uses the CSA
+**test** vendor id (`0xFFF1`), Apple falls back to "Matter Test". Set a descriptive label
+instead, either at commissioning time (via `FABRIC_LABEL`) or afterwards on an already
+commissioned node:
+
+```sh
+sudo /opt/netatmo-matter-bridge/venv/bin/python /opt/netatmo-matter-bridge/set_fabric_label.py --label "Netatmo Bridge"
+```
+
+This sends `UpdateFabricLabel` to the device; Apple Home may need a refresh to pick it up.
+The label is capped at 32 characters.
 
 ## Verify
 

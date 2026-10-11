@@ -74,6 +74,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 install -m 755 "$SCRIPT_DIR/collector.py" "$BRIDGE_DIR/collector.py"
 install -m 755 "$SCRIPT_DIR/commission.py" "$BRIDGE_DIR/commission.py"
 install -m 755 "$SCRIPT_DIR/node_info.py" "$BRIDGE_DIR/node_info.py"
+install -m 755 "$SCRIPT_DIR/set_fabric_label.py" "$BRIDGE_DIR/set_fabric_label.py"
 install -m 755 "$SCRIPT_DIR/matter_common.py" "$BRIDGE_DIR/matter_common.py"
 
 if [ ! -f "$BRIDGE_DIR/.env" ]; then
