@@ -88,6 +88,9 @@ sudo nano /opt/netatmo-matter-bridge/.env
 | `POLL_INTERVAL_SEC` | Seconds between polls (default `600`) |
 | `BATTERY_PATH` | Optional `endpoint/cluster/attribute` for battery percent (see `0/47/16`); empty = skip |
 
+The scripts read this file automatically when run manually too (e.g. `collector.py --once`),
+so there is no need to export the variables yourself.
+
 ## Commission the sensor
 
 1. In the Apple Home app open the sensor -> Settings -> **Turn on Pairing Mode** and read the manual code.

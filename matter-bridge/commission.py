@@ -3,7 +3,7 @@ import asyncio
 import logging
 import os
 
-from matter_common import DEFAULT_WS_URL, MatterError, connect, request
+from matter_common import DEFAULT_WS_URL, MatterError, connect, load_env_file, request
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOGGER = logging.getLogger("matter_commission")
@@ -69,6 +69,7 @@ def main() -> None:
         help="Do not use network_only commissioning (for factory-reset / not-yet-joined devices)",
     )
     args = parser.parse_args()
+    load_env_file()
     exit_code = asyncio.run(run(args.code, not args.no_network_only, env_ws_url()))
     raise SystemExit(exit_code)
 

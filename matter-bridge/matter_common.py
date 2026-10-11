@@ -1,5 +1,7 @@
 import json
 import logging
+import os
+from pathlib import Path
 from typing import Any, Optional
 
 import aiohttp
@@ -11,6 +13,23 @@ LOGGER = logging.getLogger("matter_bridge")
 
 class MatterError(RuntimeError):
     pass
+
+
+def load_env_file(env_file: Optional[str] = None) -> None:
+    if not env_file:
+        env_file = os.getenv("MATTER_BRIDGE_ENV", str(Path(__file__).resolve().parent / ".env"))
+    path = Path(env_file)
+    if not path.is_file():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip()
+        if key and key not in os.environ:
+            os.environ[key] = value
 
 
 async def connect(

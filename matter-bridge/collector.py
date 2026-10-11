@@ -6,7 +6,7 @@ import sys
 
 import aiohttp
 
-from matter_common import DEFAULT_WS_URL, MatterError, connect, read_attribute
+from matter_common import DEFAULT_WS_URL, MatterError, connect, load_env_file, read_attribute
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOGGER = logging.getLogger("matter_bridge")
@@ -143,6 +143,7 @@ def main() -> None:
     parser.add_argument("--once", action="store_true", help="Read and push a single reading, then exit")
     args = parser.parse_args()
 
+    load_env_file()
     cfg = Config()
     try:
         cfg.validate()
