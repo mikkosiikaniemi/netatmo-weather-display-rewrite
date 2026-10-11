@@ -2,6 +2,8 @@
 
 A weather display web application for presenting temperature information gathered by locally installed [Netatmo weather sensors](https://www.netatmo.com/en-eu/weather/weatherstation).
 
+> **Note:** This is a complete rewrite of my earlier [netatmo-weather-display](https://github.com/mikkosiikaniemi/netatmo-weather-display) repository, rebuilt from the ground up with a React + TypeScript frontend and a Node.js + Express backend.
+
 
 ## Screenshot
 
