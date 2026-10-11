@@ -58,8 +58,16 @@ fi
 VENV_BIN="$VENV_DIR/bin"
 
 info "Installing $PACKAGE"
-"$VENV_BIN/pip" install --quiet --upgrade pip
-"$VENV_BIN/pip" install --quiet "$PACKAGE"
+if [ -x "$VENV_BIN/pip" ]; then
+  "$VENV_BIN/pip" install --quiet --upgrade pip
+  "$VENV_BIN/pip" install --quiet "$PACKAGE"
+elif command -v uv >/dev/null 2>&1; then
+  info "Using uv pip (venv has no pip binary)"
+  uv pip install --python "$VENV_BIN/python" "$PACKAGE"
+else
+  echo "ERROR: $VENV_BIN/pip is missing and uv is not available to install packages." >&2
+  exit 1
+fi
 
 info "Installing bridge scripts"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
