@@ -26,6 +26,7 @@ class Config:
         self.device_name = os_env("DEVICE_NAME", "")
         self.node_id = int(os_env("NODE_ID", "1"))
         self.poll_interval = int(os_env("POLL_INTERVAL_SEC", "600"))
+        self.collect_timeout = int(os_env("COLLECT_TIMEOUT_SEC", "90"))
         self.temperature_path = os_env("TEMPERATURE_PATH", "1/1026/0")
         self.humidity_path = os_env("HUMIDITY_PATH", "2/1029/0")
         self.battery_path = os_env("BATTERY_PATH", "")
@@ -130,9 +131,13 @@ async def run(cfg: Config, once: bool) -> None:
 
         while True:
             try:
-                await collect_once(session, cfg)
-            except (MatterError, aiohttp.ClientError) as error:
-                LOGGER.error("Poll failed: %s", error)
+                await asyncio.wait_for(collect_once(session, cfg), timeout=cfg.collect_timeout)
+            except asyncio.TimeoutError:
+                LOGGER.error("Poll timed out after %ss", cfg.collect_timeout)
+            except Exception as error:
+                LOGGER.exception("Poll failed: %s", error)
+            if session.closed:
+                session = aiohttp.ClientSession()
             await asyncio.sleep(cfg.poll_interval)
     finally:
         await session.close()
