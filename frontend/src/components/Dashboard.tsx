@@ -330,6 +330,10 @@ function Dashboard(props: DashboardProps) {
 
     return mergeOutdoorSeries(outdoorHistory)
   }, [outdoorHistory])
+  const outdoorTemperatureColorData = useMemo(
+    () => splitOutdoorTemperaturesAtZero(outdoorChartData),
+    [outdoorChartData]
+  )
   const outdoorPreviousDayChartData = useMemo(() => {
     if (!outdoorHistory) {
       return []
@@ -539,6 +543,10 @@ function Dashboard(props: DashboardProps) {
                             <stop offset="0%" stopColor={TEMP_COLOR} stopOpacity={0.4} />
                             <stop offset="100%" stopColor={TEMP_COLOR} stopOpacity={0.2} />
                           </linearGradient>
+                          <linearGradient id="outdoorSubzeroTempFill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={HUMIDITY_COLOR} stopOpacity={0.4} />
+                            <stop offset="100%" stopColor={HUMIDITY_COLOR} stopOpacity={0.2} />
+                          </linearGradient>
                         </defs>
                         <CartesianGrid stroke="rgba(161,161,170,0.2)" strokeDasharray="3 3" yAxisId="temp" />
                         <XAxis
@@ -580,7 +588,32 @@ function Dashboard(props: DashboardProps) {
                         ) : null}
                         <Tooltip content={<OutdoorChartTooltip />} />
                         <Line yAxisId="humidity" type="monotone" dataKey="humidity" stroke={HUMIDITY_COLOR} strokeWidth={1.8} dot={false} strokeOpacity={0.45} isAnimationActive={false} />
-                        <Area yAxisId="temp" type="monotone" dataKey="temperature" fill="url(#outdoorTempFill)" fillOpacity={1} stroke={TEMP_COLOR} strokeWidth={2.2} dot={false} isAnimationActive={false} />
+                        <Area
+                          yAxisId="temp"
+                          type="monotone"
+                          data={outdoorTemperatureColorData}
+                          dataKey="temperatureAboveZero"
+                          baseValue={0}
+                          fill="url(#outdoorTempFill)"
+                          fillOpacity={1}
+                          stroke={TEMP_COLOR}
+                          strokeWidth={2.2}
+                          dot={false}
+                          isAnimationActive={false}
+                        />
+                        <Area
+                          yAxisId="temp"
+                          type="monotone"
+                          data={outdoorTemperatureColorData}
+                          dataKey="temperatureBelowZero"
+                          baseValue={0}
+                          fill="url(#outdoorSubzeroTempFill)"
+                          fillOpacity={1}
+                          stroke={HUMIDITY_COLOR}
+                          strokeWidth={2.2}
+                          dot={false}
+                          isAnimationActive={false}
+                        />
                         <Line
                           yAxisId="temp"
                           type="monotone"
@@ -1036,6 +1069,51 @@ function mergeOutdoorSeries(module: ModuleHistory) {
       rain: isFirstPointInHalfHour ? rainValue : 0,
     }
   })
+}
+
+function splitOutdoorTemperaturesAtZero(
+  points: ReturnType<typeof mergeOutdoorSeries>
+) {
+  const result: Array<
+    (typeof points)[number] & {
+      temperatureAboveZero: number | null
+      temperatureBelowZero: number | null
+    }
+  > = []
+
+  points.forEach((point, index) => {
+    const temperature = point.temperature
+    result.push({
+      ...point,
+      temperatureAboveZero:
+        typeof temperature === 'number' && temperature >= 0 ? temperature : null,
+      temperatureBelowZero:
+        typeof temperature === 'number' && temperature <= 0 ? temperature : null,
+    })
+
+    const nextPoint = points[index + 1]
+    const nextTemperature = nextPoint ? nextPoint.temperature : null
+    if (
+      typeof temperature !== 'number' ||
+      typeof nextTemperature !== 'number' ||
+      temperature === 0 ||
+      nextTemperature === 0 ||
+      (temperature < 0) === (nextTemperature < 0)
+    ) {
+      return
+    }
+
+    const crossingRatio = -temperature / (nextTemperature - temperature)
+    result.push({
+      ...point,
+      timestamp: point.timestamp + (nextPoint.timestamp - point.timestamp) * crossingRatio,
+      temperature: 0,
+      temperatureAboveZero: 0,
+      temperatureBelowZero: 0,
+    })
+  })
+
+  return result
 }
 
 function OutdoorChartTooltip(props: {
