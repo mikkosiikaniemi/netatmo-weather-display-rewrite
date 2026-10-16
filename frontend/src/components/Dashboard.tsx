@@ -555,7 +555,7 @@ function Dashboard(props: DashboardProps) {
             <div key={card.id}>
               <p className="text-[17px] text-[#9a9892]">{card.name}</p>
               <p className="mt-5 text-[clamp(3rem,6vw,4.5rem)] font-light leading-none tracking-[-0.04em]">
-                {formatPlainTemperature(card.temperature)}
+                <TemperatureReading value={card.temperature} />
               </p>
               <p className="mt-6 text-[17px] text-[#6f6e6a]">{card.humidity !== null ? Math.round(card.humidity) + ' %' : '--'}</p>
             </div>
@@ -598,10 +598,12 @@ function BigTemperature(props: { value: number | null }) {
     return <span>--</span>
   }
 
+  const [mainDigits, fractionalDigit = '0'] = props.value.toFixed(1).replace('-', '\u2212').split('.')
+
   return (
-    <span className="inline-flex items-start">
-      {props.value.toFixed(1).replace('-', '\u2212')}
-      <span className="ml-3 mt-[0.45em] inline-block h-[0.12em] w-[0.12em] min-h-[14px] min-w-[14px] rounded-full border-[5px] border-[#9a9892]" />
+    <span className="inline-flex items-baseline">
+      {mainDigits}
+      <span className="ml-[0.14em] text-[0.5em] tracking-wide opacity-45">{fractionalDigit}°</span>
     </span>
   )
 }
@@ -674,12 +676,12 @@ function TemperatureReading(props: { value: number | null }) {
     return <span>--</span>
   }
 
-  const [mainDigits, fractionalDigit = '0'] = props.value.toFixed(1).split('.')
+  const [mainDigits, fractionalDigit = '0'] = props.value.toFixed(1).replace('-', '\u2212').split('.')
 
   return (
-    <span className="inline-flex items-baseline gap-2 font-temperature font-bold tracking-tight">
+    <span className="inline-flex items-baseline">
       {mainDigits}
-      <span className="align-bottom text-[0.5em] tracking-wide opacity-40">{fractionalDigit}°</span>
+      <span className="ml-[0.14em] text-[0.55em] tracking-wide opacity-45">{fractionalDigit}°</span>
     </span>
   )
 }
