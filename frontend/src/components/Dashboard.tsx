@@ -476,7 +476,7 @@ function Dashboard(props: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-[#101214] text-[#efece6]">
-      <div className="mx-auto w-full max-w-[1100px] px-6 py-7 md:px-[50px] md:py-8">
+      <div className="mx-auto w-full max-w-[1100px] px-6 py-7 md:px-[50px]">
         <DashboardHeader
           onRefresh={handleRefresh}
           onLogout={props.onLogout}
