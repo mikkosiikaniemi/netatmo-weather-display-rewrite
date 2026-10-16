@@ -154,7 +154,7 @@ const DashboardHeader = React.memo(function DashboardHeader(props: DashboardHead
   return (
     <section>
       <div className="grid gap-4 grid-cols-[auto_auto_auto] items-center">
-        <p className="text-[22px] text-[#9a9892]">{formatDate(now)}</p>
+        <p className="text-[26px] text-[#9a9892]">{formatDate(now)}</p>
         <div className="relative flex items-center gap-2 justify-center self-center">
           <button
             onClick={props.onRefresh}
@@ -214,7 +214,7 @@ const DashboardHeader = React.memo(function DashboardHeader(props: DashboardHead
             </div>
           ) : null}
         </div>
-        <p className="text-[22px] text-[#9a9892] justify-self-end md:text-right">{formatShortClock(now)}</p>
+        <p className="text-[26px] text-[#9a9892] justify-self-end md:text-right">{formatShortClock(now)}</p>
       </div>
     </section>
   )
@@ -498,7 +498,7 @@ function Dashboard(props: DashboardProps) {
                     />
                   ) : null}
                 </p>
-                <p className="mt-2 text-[clamp(7rem,17vw,12.5rem)] font-light leading-[0.95] tracking-[-0.04em] text-[#efece6]">
+                <p className="mt-2 text-[clamp(9rem,21vw,15rem)] font-light leading-[0.95] text-[#efece6]">
                   <BigTemperature value={outdoorModule.temperature} />
                 </p>
                 <p className="mt-6 flex flex-wrap gap-x-8 gap-y-1 text-[17px] text-[#9a9892]">
@@ -554,7 +554,7 @@ function Dashboard(props: DashboardProps) {
           {indoorCards.map((card) => (
             <div key={card.id}>
               <p className="text-[17px] text-[#9a9892]">{card.name}</p>
-              <p className="mt-5 text-[clamp(3rem,6vw,4.5rem)] font-light leading-none tracking-[-0.04em]">
+              <p className="mt-5 text-[clamp(4rem,8vw,6rem)] font-light leading-none">
                 <TemperatureReading value={card.temperature} />
               </p>
               <p className="mt-6 text-[17px] text-[#6f6e6a]">{card.humidity !== null ? Math.round(card.humidity) + ' %' : '--'}</p>
