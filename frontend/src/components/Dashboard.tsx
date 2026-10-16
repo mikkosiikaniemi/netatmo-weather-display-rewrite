@@ -552,7 +552,7 @@ function Dashboard(props: DashboardProps) {
           )}
         </section>
 
-        <hr className="my-9 border-0 border-t border-white/[0.06]" />
+        <hr className="my-7 border-0 border-t border-white/[0.06]" />
 
         <section className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
           {indoorCards.map((card) => (
@@ -566,7 +566,7 @@ function Dashboard(props: DashboardProps) {
           ))}
         </section>
 
-        <hr className="my-9 border-0 border-t border-white/[0.06]" />
+        <hr className="my-7 border-0 border-t border-white/[0.06]" />
 
         <section>
           {forecastQuery.isLoading ? <p className="text-[#6f6e6a]">Loading forecast...</p> : null}
