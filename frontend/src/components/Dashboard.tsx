@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Area, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useForecastData } from '../hooks/useForecastData'
 import { useSensorReadings } from '../hooks/useSensorReadings'
 import { useWeatherData } from '../hooks/useWeatherData'
@@ -9,6 +9,7 @@ import { ModuleHistory, StationHistoryResponse } from '../types/weather'
 
 const QUERY_REFETCH_INTERVAL_MS = 10.5 * 60 * 1000
 
+const ACCENT_COLOR = '#6ba3e0'
 const TEMP_COLOR = '#ff3b30'
 const HUMIDITY_COLOR = '#00b8ff'
 const FORECAST_RAIN_COLOR = 'hsla(197, 100%, 60%, 0.98)'
@@ -151,13 +152,13 @@ const DashboardHeader = React.memo(function DashboardHeader(props: DashboardHead
   }, [])
 
   return (
-    <section className="rounded-lg bg-zinc-950 p-5">
+    <section>
       <div className="grid gap-4 grid-cols-[auto_auto_auto] items-center">
-        <p className="text-2xl md:text-5xl font-normal tracking-tight text-zinc-50">{formatDate(now)}</p>
+        <p className="text-[22px] text-[#9a9892]">{formatDate(now)}</p>
         <div className="relative flex items-center gap-2 justify-center self-center">
           <button
             onClick={props.onRefresh}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-zinc-800 text-zinc-400 transition-colors hover:bg-zinc-600 hover:text-zinc-200"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#4a4b4c] transition-colors hover:bg-white/10 hover:text-zinc-200"
             type="button"
             aria-label="Refresh data"
             title="Refresh data"
@@ -169,7 +170,7 @@ const DashboardHeader = React.memo(function DashboardHeader(props: DashboardHead
           </button>
           <button
             onClick={props.onLogout}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-zinc-800 text-zinc-400 transition-colors hover:bg-zinc-600 hover:text-zinc-200"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#4a4b4c] transition-colors hover:bg-white/10 hover:text-zinc-200"
             type="button"
             aria-label="Disconnect"
             title="Disconnect"
@@ -181,7 +182,7 @@ const DashboardHeader = React.memo(function DashboardHeader(props: DashboardHead
           </button>
           <button
             onClick={() => setIsMetaOpen((previousValue) => !previousValue)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-zinc-800 text-zinc-400 transition-colors hover:bg-zinc-600 hover:text-zinc-200"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#4a4b4c] transition-colors hover:bg-white/10 hover:text-zinc-200"
             type="button"
             aria-label="Show info"
             aria-expanded={isMetaOpen}
@@ -213,7 +214,7 @@ const DashboardHeader = React.memo(function DashboardHeader(props: DashboardHead
             </div>
           ) : null}
         </div>
-        <p className="text-2xl md:text-5xl tabular-nums text-zinc-100 justify-self-end md:text-right">{formatClock(now)}</p>
+        <p className="text-[22px] text-[#9a9892] justify-self-end md:text-right">{formatShortClock(now)}</p>
       </div>
     </section>
   )
@@ -223,6 +224,13 @@ function Dashboard(props: DashboardProps) {
   const weatherQuery = useWeatherData()
   const forecastQuery = useForecastData()
   const sensorQuery = useSensorReadings()
+  const handleRefresh = () => {
+    void Promise.all([
+      weatherQuery.refetch(),
+      forecastQuery.refetch(),
+      sensorQuery.refetch(),
+    ])
+  }
   const sensorDevices = useMemo(
     () => groupReadingsByDevice(sensorQuery.data ? sensorQuery.data.readings : []),
     [sensorQuery.data]
@@ -449,11 +457,24 @@ function Dashboard(props: DashboardProps) {
     () => ({ ['--indoor-modules-count' as string]: String(Math.max(indoorModules.length + sensorDevices.length, 1)) }) as React.CSSProperties,
     [indoorModules.length, sensorDevices.length]
   )
+  const forecastCells = forecastDayGroups.flatMap((group) => group.points).slice(0, 6)
+  const sixHourTicks = [0, 6, 12, 18, 24].map((hour) => dayWindow.start + hour * 60 * 60 * 1000)
+  const lastOutdoorPoint = [...outdoorChartData].reverse().find((point) => typeof point.temperature === 'number') || null
+  const indoorCards = [
+    ...indoorModules.map((module) => ({ id: module.id, name: module.name, temperature: module.temperature, humidity: module.humidity })),
+    ...sensorDevices.map((device) => ({
+      id: device.deviceId,
+      name: device.name || device.deviceId,
+      temperature: device.latest ? device.latest.temperature : null,
+      humidity: device.latest ? device.latest.humidity : null,
+    })),
+  ]
+
   return (
-    <div className="min-h-screen bg-black text-zinc-100">
-      <div className="mx-auto w-full max-w-7xl px-4 py-4">
+    <div className="min-h-screen bg-[#101214] text-[#efece6]">
+      <div className="mx-auto w-full max-w-[1100px] px-6 py-8 md:px-[50px] md:py-[46px]">
         <DashboardHeader
-          onRefresh={weatherQuery.refetch}
+          onRefresh={handleRefresh}
           onLogout={props.onLogout}
           stationLatitude={selectedStation ? selectedStation.latitude : null}
           stationLongitude={selectedStation ? selectedStation.longitude : null}
@@ -461,412 +482,181 @@ function Dashboard(props: DashboardProps) {
           historyFetchedAt={historyQuery.data ? historyQuery.data.fetchedAt : null}
         />
 
-        <div className="mt-4 rounded-lg p-5 bg-zinc-950">
+        <section className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-[1fr_1.2fr] md:gap-16">
           {outdoorModule ? (
-            <div className="outdoor-overview-grid grid grid-cols-5 gap-4">
-              <div className="flex flex-col col-span-2">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-2">
-                    <p className="text-lg font-semibold text-zinc-100" title={'Last seen: ' + formatLastSeen(outdoorModule.lastSeenAt)}>{outdoorModule.name}</p>
-                    {outdoorHistoryFetchFailed ? (
-                      <HistoryWarningIcon
-                        message={
-                          outdoorHasCachedData
-                            ? 'Outdoor history fetch failed. Showing last cached values.'
-                            : 'Outdoor history fetch failed. No cached outdoor history is available yet.'
-                        }
-                      />
-                    ) : null}
-                  </div>
-                </div>
-                <div className="flex flex-1 items-center justify-center">
-                  <p className="text-center text-[clamp(6.25rem,19vw,11.5rem)] font-bold leading-none text-zinc-100">
-                    <TemperatureReading value={outdoorModule.temperature} />
-                  </p>
-                </div>
-
-                <div className="mt-auto flex items-center justify-center gap-4 text-sm text-zinc-300">
-                  <span
-                    className="inline-flex items-center gap-1"
-                    title={
-                      'Min: ' +
-                      (outdoorModule.minTemperature !== null ? outdoorModule.minTemperature.toFixed(1) + '°' : '--')
-                    }
-                  >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4 text-zinc-400 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M7 10 12 15 17 10" />
-                    </svg>
-                    <span>{outdoorModule.minTemperature !== null ? outdoorModule.minTemperature.toFixed(1) + '°' : '--'}</span>
-                  </span>
-                  <span
-                    className="inline-flex items-center gap-1"
-                    title={
-                      'Max: ' +
-                      (outdoorModule.maxTemperature !== null ? outdoorModule.maxTemperature.toFixed(1) + '°' : '--')
-                    }
-                  >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4 text-zinc-400 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M7 14 12 9l5 5" />
-                    </svg>
-                    <span>{outdoorModule.maxTemperature !== null ? outdoorModule.maxTemperature.toFixed(1) + '°' : '--'}</span>
-                  </span>
-                  {hasOutdoorRainToday ? (
-                    <span
-                      className="inline-flex items-center gap-1"
-                      title={'Rain today: ' + outdoorRainTodayAmount.toFixed(1) + ' mm'}
-                    >
-                      <svg viewBox="0 0 24 24" className="h-4 w-4 text-zinc-400 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M12 3C9 7 6 10 6 14a6 6 0 0 0 12 0c0-4-3-7-6-11Z" />
-                      </svg>
-                      <span>{outdoorRainTodayAmount.toFixed(1) + ' mm'}</span>
-                    </span>
+            <>
+              <div className="flex flex-col">
+                <p className="flex items-center gap-2 text-[17px] text-[#9a9892]" title={'Last seen: ' + formatLastSeen(outdoorModule.lastSeenAt)}>
+                  {outdoorModule.name}
+                  {outdoorHistoryFetchFailed ? (
+                    <HistoryWarningIcon
+                      message={
+                        outdoorHasCachedData
+                          ? 'Outdoor history fetch failed. Showing last cached values.'
+                          : 'Outdoor history fetch failed. No cached outdoor history is available yet.'
+                      }
+                    />
                   ) : null}
-                  <span
-                    className="inline-flex items-center gap-1"
-                    title={outdoorModule.humidity !== null ? 'Humidity: ' + outdoorModule.humidity + '%' : 'Humidity unavailable'}
-                  >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4 text-zinc-400 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 3C9 7 6 10 6 14a6 6 0 0 0 12 0c0-4-3-7-6-11Z" />
-                    </svg>
-                    <span>{outdoorModule.humidity !== null ? outdoorModule.humidity + '%' : '--'}</span>
-                  </span>
-                </div>
+                </p>
+                <p className="mt-2 text-[clamp(7rem,17vw,12.5rem)] font-light leading-[0.95] tracking-[-0.04em] text-[#efece6]">
+                  <BigTemperature value={outdoorModule.temperature} />
+                </p>
+                <p className="mt-6 flex flex-wrap gap-x-8 gap-y-1 text-[17px] text-[#9a9892]">
+                  <span>Alin {formatPlainTemperature(outdoorModule.minTemperature)}</span>
+                  <span>Ylin {formatPlainTemperature(outdoorModule.maxTemperature)}</span>
+                  <span>Kosteus {outdoorModule.humidity !== null ? outdoorModule.humidity + ' %' : '--'}</span>
+                  {hasOutdoorRainToday ? <span className="text-[#6ba3e0]">{outdoorRainTodayAmount.toFixed(1)} mm</span> : null}
+                </p>
               </div>
 
-              <div className="outdoor-chart-panel rounded-lg bg-zinc-950 px-4 -mb-3 col-span-3">
+              <div className="h-56 self-end md:h-64">
                 {outdoorChartData.length > 0 ? (
-                  <div className="-mx-2 h-60">
-                    <ResponsiveContainer width="100%" height="100%" debounce={120}>
-                      <ComposedChart data={outdoorChartData} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
-                        <defs>
-                          <linearGradient id="outdoorTempFill" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={TEMP_COLOR} stopOpacity={0.4} />
-                            <stop offset="100%" stopColor={TEMP_COLOR} stopOpacity={0.2} />
-                          </linearGradient>
-                          <linearGradient id="outdoorSubzeroTempFill" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={HUMIDITY_COLOR} stopOpacity={0.4} />
-                            <stop offset="100%" stopColor={HUMIDITY_COLOR} stopOpacity={0.2} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid stroke="rgba(161,161,170,0.2)" strokeDasharray="3 3" yAxisId="temp" />
-                        <XAxis
-                          type="number"
-                          dataKey="timestamp"
-                          domain={[dayWindow.start, dayWindow.end]}
-                          allowDataOverflow
-                          ticks={evenHourTicks}
-                          tickFormatter={formatHourTick}
-                          minTickGap={22}
-                          stroke="rgba(161,161,170,0.35)"
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fontSize: 10, fill: 'rgba(161,161,170,0.68)' }}
-                        />
-                        <YAxis
-                          yAxisId="temp"
-                          stroke="rgba(161,161,170,0.22)"
-                          domain={outdoorTemperatureDomain}
-                          ticks={outdoorTemperatureTicks}
-                          tickFormatter={(value: number | string) =>
-                            formatTemperatureTickLabel(value, outdoorTemperatureDomain)
-                          }
-                          tick={{ fontSize: 10, fill: 'rgba(161,161,170,0.68)' }}
-													interval={0}
-                          width="auto"
-                        />
-                        {hasOutdoorRainToday ? (
-                          <YAxis
-                            yAxisId="rain"
-                            orientation="right"
-                            domain={[0, outdoorRainAxisMax]}
-                            stroke="rgba(161,161,170,0.22)"
-                            tick={{ fontSize: 10, fill: 'rgba(161,161,170,0.68)' }}
-                            tickFormatter={(value: number) => `${value.toFixed(1)}`}
-                            width={42}
-                            label={{ value: 'Rain mm', angle: -90, position: 'insideRight', fill: 'rgba(161,161,170,0.68)', fontSize: 10 }}
-                          />
-                        ) : null}
-                        <Tooltip content={<OutdoorChartTooltip />} />
-                        <Line yAxisId="humidity" type="monotone" dataKey="humidity" stroke={HUMIDITY_COLOR} strokeWidth={1.8} dot={false} strokeOpacity={0.45} isAnimationActive={false} />
-                        <Area
-                          yAxisId="temp"
-                          type="monotone"
-                          data={outdoorTemperatureColorData}
-                          dataKey="temperatureAboveZero"
-                          baseValue={0}
-                          fill="url(#outdoorTempFill)"
-                          fillOpacity={1}
-                          stroke={TEMP_COLOR}
-                          strokeWidth={2.2}
-                          dot={false}
-                          isAnimationActive={false}
-                        />
-                        <Area
-                          yAxisId="temp"
-                          type="monotone"
-                          data={outdoorTemperatureColorData}
-                          dataKey="temperatureBelowZero"
-                          baseValue={0}
-                          fill="url(#outdoorSubzeroTempFill)"
-                          fillOpacity={1}
-                          stroke={HUMIDITY_COLOR}
-                          strokeWidth={2.2}
-                          dot={false}
-                          isAnimationActive={false}
-                        />
-                        <Line
-                          yAxisId="temp"
-                          type="monotone"
-                          data={outdoorPreviousDayChartData}
-                          dataKey="temperature"
-                          name="Temp yesterday"
-                          stroke={TEMP_COLOR}
-                          strokeWidth={1.7}
-                          strokeOpacity={0.5}
-                          dot={false}
-                          isAnimationActive={false}
-                        />
-                        {hasOutdoorRainToday ? (
-                          <Bar
-                            yAxisId="rain"
-                            dataKey="rain"
-                            name="Rain mm"
-                            fill={FORECAST_RAIN_COLOR}
-                            shape={<RainBarShape />}
-                            isAnimationActive={false}
-                          />
-                        ) : null}
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </div>
+                  <ResponsiveContainer width="100%" height="100%" debounce={120}>
+                    <LineChart data={outdoorChartData} margin={{ top: 20, right: 0, bottom: 0, left: 0 }}>
+                      <XAxis
+                        type="number"
+                        dataKey="timestamp"
+                        domain={[dayWindow.start, dayWindow.end]}
+                        allowDataOverflow
+                        ticks={sixHourTicks}
+                        tickFormatter={formatHourTick}
+                        interval={0}
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={14}
+                        tick={{ fontSize: 17, fill: '#6f6e6a' }}
+                        padding={{ left: 0, right: 0 }}
+                      />
+                      <YAxis hide domain={outdoorTemperatureDomain} />
+                      <ReferenceLine y={0} stroke="rgba(255,255,255,0.08)" />
+                      <Tooltip content={<OutdoorChartTooltip />} />
+                      <Line type="monotone" dataKey="temperature" stroke={ACCENT_COLOR} strokeWidth={3} dot={false} isAnimationActive={false} />
+                      {lastOutdoorPoint ? (
+                        <ReferenceDot x={lastOutdoorPoint.timestamp} y={lastOutdoorPoint.temperature as number} r={8} fill={ACCENT_COLOR} stroke="none" />
+                      ) : null}
+                    </LineChart>
+                  </ResponsiveContainer>
                 ) : (
-                  <p className="text-sm text-zinc-400">
-                    {historyQuery.isLoading
-                      ? 'Loading outdoor history...'
-                      : outdoorHistoryFetchFailed
-                        ? outdoorHasCachedData
-                          ? 'Outdoor history fetch failed. Showing cached data until a successful refresh.'
-                          : 'Outdoor history fetch failed. No cached outdoor history is available yet.'
-                        : historyQuery.isError
-                        ? 'Outdoor history request failed. Netatmo data may be unavailable.'
-                        : 'Outdoor history not available yet.'}
+                  <p className="text-sm text-[#6f6e6a]">
+                    {historyQuery.isLoading ? 'Loading outdoor history...' : 'Outdoor history not available yet.'}
                   </p>
                 )}
               </div>
-            </div>
+            </>
           ) : (
-            <p className="mt-3 text-zinc-400">Outdoor module not found.</p>
+            <p className="text-[#9a9892]">Outdoor module not found.</p>
           )}
-        </div>
+        </section>
 
-        <div className="indoor-modules-grid mt-4 grid grid-cols-1 gap-4" style={indoorGridStyle}>
-            {indoorModules.map((module) => {
-              const moduleHistory = indoorHistoryById[module.id] || null
-              const moduleSeries = indoorSeriesById[module.id] || []
-              const moduleHistoryFetchFailed = failedHistoryModuleIds.has(module.id) || Boolean(moduleHistory && moduleHistory.historyFetchFailed)
-              const moduleHasCachedData = Boolean(moduleHistory && moduleHasRenderableHistory(moduleHistory))
-              const modulePreviousDayChartData = indoorPreviousDaySeriesById[module.id] || []
+        <hr className="my-12 border-0 border-t border-white/[0.06]" />
+
+        <section className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4">
+          {indoorCards.map((card) => (
+            <div key={card.id}>
+              <p className="text-[17px] text-[#9a9892]">{card.name}</p>
+              <p className="mt-5 text-[clamp(3rem,6vw,4.5rem)] font-light leading-none tracking-[-0.04em]">
+                {formatPlainTemperature(card.temperature)}
+              </p>
+              <p className="mt-6 text-[17px] text-[#6f6e6a]">{card.humidity !== null ? Math.round(card.humidity) + ' %' : '--'}</p>
+            </div>
+          ))}
+        </section>
+
+        <hr className="my-12 border-0 border-t border-white/[0.06]" />
+
+        <section>
+          {forecastQuery.isLoading ? <p className="text-[#6f6e6a]">Loading forecast...</p> : null}
+          {forecastQuery.isError ? <p className="text-rose-300">Forecast unavailable right now.</p> : null}
+          <div className="grid grid-cols-3 gap-x-6 gap-y-10 md:grid-cols-6">
+            {forecastCells.map((point) => {
+              const precipitationAmount = Math.max(0, point.precipitationAmount)
 
               return (
-              <article key={module.id} className="rounded-lg bg-zinc-950 p-5 pt-4 pb-1 flex flex-row md:flex-col gap-2">
-								<div className="text-data">
-									<div className="flex items-center justify-between">
-										<div className="flex items-start gap-2">
-											<p className="text-lg font-semibold text-zinc-100" title={'Last seen: ' + formatLastSeen(module.lastSeenAt)}>{module.name}</p>
-											{moduleHistoryFetchFailed ? (
-												<HistoryWarningIcon
-													message={
-														moduleHasCachedData
-															? 'History fetch failed. Showing last cached values.'
-															: 'History fetch failed. No cached values are available yet.'
-													}
-												/>
-											) : null}
-										</div>
-										<div className="flex items-center gap-2 text-sm text-zinc-300">
-											<span className="inline-flex items-center gap-1" title={module.humidity !== null ? 'Humidity: ' + module.humidity + '%' : 'Humidity unavailable'}>
-												<svg viewBox="0 0 24 24" className="h-4 w-4 text-zinc-400 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-													<path d="M12 3C9 7 6 10 6 14a6 6 0 0 0 12 0c0-4-3-7-6-11Z" />
-												</svg>
-												<span>{module.humidity !== null ? module.humidity + '%' : '--'}</span>
-											</span>
-											<span
-												className={'h-4 w-4 rounded-full ' + getCo2Class(module.co2)}
-												title={module.co2 !== null ? 'CO2: ' + module.co2 + ' ppm' : 'CO2 unavailable'}
-											></span>
-										</div>
-									</div>
-
-									<p className="mt-2 text-7xl font-bold leading-none text-center">
-										<TemperatureReading value={module.temperature} />
-									</p>
-								</div>
-
-                {moduleHistory ? (
-                  <div className="-mx-2 h-36 flex-auto">
-                    <ResponsiveContainer width="100%" height="100%" debounce={120}>
-                      <ComposedChart data={moduleSeries} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
-                        <defs>
-                          <linearGradient id={'indoorTempFill-' + module.id} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={TEMP_COLOR} stopOpacity={0.4} />
-                            <stop offset="100%" stopColor={TEMP_COLOR} stopOpacity={0.2} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid stroke="rgba(161,161,170,0.22)" strokeDasharray="2 3" yAxisId="temp" />
-                        <XAxis
-                          type="number"
-                          dataKey="timestamp"
-                          domain={[dayWindow.start, dayWindow.end]}
-                          allowDataOverflow
-                          ticks={evenHourTicks}
-                          tickFormatter={formatHourTick}
-                          minTickGap={14}
-                          stroke="rgba(161,161,170,0.35)"
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fontSize: 10, fill: 'rgba(161,161,170,0.64)' }}
-                        />
-                        <YAxis
-                          yAxisId="temp"
-                          stroke="rgba(161,161,170,0.18)"
-                          domain={indoorTemperatureDomain}
-                          ticks={indoorTemperatureTicks}
-                          interval={0}
-                          tickFormatter={(value: number | string) =>
-                            formatTemperatureTickLabel(value, indoorTemperatureDomain)
-                          }
-                          tick={{ fontSize: 9, fill: 'rgba(161,161,170,0.64)' }}
-                          width={28}
-                        />
-                        <YAxis
-                          yAxisId="humidity"
-                          orientation="right"
-                          stroke="rgba(161,161,170,0.18)"
-                          domain={indoorHumidityDomain}
-                          tick={{ fontSize: 9, fill: 'rgba(161,161,170,0.64)' }}
-                          width={28}
-                        />
-                        <Tooltip
-                          labelFormatter={formatTooltipTimestamp}
-                          contentStyle={{ backgroundColor: '#18181b', border: '1px solid #52525b', borderRadius: 8 }}
-                          labelStyle={{ color: '#d4d4d8' }}
-                          itemStyle={{ color: '#fafafa' }}
-                        />
-                        <Line yAxisId="humidity" type="monotone" dataKey="humidity" stroke={HUMIDITY_COLOR} strokeWidth={1.7} dot={false} strokeOpacity={0.45} isAnimationActive={false} />
-                        <Area yAxisId="temp" type="monotone" dataKey="temperature" fill={'url(#indoorTempFill-' + module.id + ')'} fillOpacity={1} stroke={TEMP_COLOR} strokeWidth={2.1} dot={false} isAnimationActive={false} />
-                        <Line
-                          yAxisId="temp"
-                          type="monotone"
-                          data={modulePreviousDayChartData}
-                          dataKey="temperature"
-                          name="Temp yesterday"
-                          stroke={TEMP_COLOR}
-                          strokeWidth={1.6}
-                          strokeOpacity={0.5}
-                          dot={false}
-                          isAnimationActive={false}
-                        />
-                      </ComposedChart>
-                    </ResponsiveContainer>
+                <div key={point.timestamp}>
+                  <p className="text-[17px] text-[#9a9892]">{formatWeekdayShort(point.timestamp)} {formatHour(point.timestamp)}</p>
+                  <div className={'mt-5 ' + (precipitationAmount > 0 ? 'text-[#6ba3e0]' : 'text-[#9a9892]')}>
+                    <ForecastIcon symbolCode={point.symbolCode} />
                   </div>
-                ) : (
-                  <p className="mt-3 text-xs text-zinc-400">
-                    {historyQuery.isLoading
-                      ? 'Loading history...'
-                      : moduleHistoryFetchFailed
-                        ? moduleHasCachedData
-                          ? 'History fetch failed. Showing cached data until a successful refresh.'
-                          : 'History fetch failed. No cached data available for this module yet.'
-                        : historyQuery.isError
-                        ? 'History request failed. Netatmo data may be unavailable.'
-                        : 'History not available.'}
+                  <p className="mt-5 flex items-baseline gap-3 text-[34px] font-light leading-none tracking-[-0.02em]">
+                    {formatPlainTemperature(point.airTemperature, 0)}
+                    {precipitationAmount > 0 ? (
+                      <span className="text-[17px] tracking-normal text-[#6ba3e0]">{precipitationAmount.toFixed(1)} mm</span>
+                    ) : null}
                   </p>
-                )}
-              </article>
+                </div>
               )
             })}
-            {sensorDevices.map((device) => (
-              <SensorReadingCard key={device.deviceId} device={device} dayWindow={dayWindow} evenHourTicks={evenHourTicks} />
-            ))}
-        </div>
-
-        <div className="mt-4">
-          {forecastQuery.isLoading ? <p className="mt-3 text-zinc-400">Loading forecast...</p> : null}
-          {forecastQuery.isError ? <p className="mt-3 text-rose-300">Forecast unavailable right now.</p> : null}
-          {forecastQuery.data ? (
-            <div className="mt-4 flex gap-4">
-              {forecastDayGroups.map((dayGroup) => (
-                <div
-                  key={dayGroup.dayStartTimestamp}
-                  className="forecast-grid min-w-0 rounded-lg overflow-hidden bg-zinc-950 px-3 grid grid-cols-2"
-                  style={{
-                    ['--forecast-points-count' as string]: String(Math.max(dayGroup.points.length, 1)),
-                    flexGrow: Math.max(dayGroup.points.length, 1),
-                    flexBasis: 0,
-                  } as React.CSSProperties}
-                >
-                  {dayGroup.points.map((point, index) => {
-                    const showWeekdayLabel = index === 0
-                const symbolId = resolveYrSymbolId(point.symbolCode)
-                const precipitationAmount = Math.max(0, point.precipitationAmount)
-                const precipitationAmountMax = Math.max(precipitationAmount, point.precipitationAmountMax || 0)
-                const rainBarHeightPx = getRainBarHeightPx(precipitationAmountMax)
-                const rainBaseHeightPercent =
-                  precipitationAmountMax > 0
-                    ? Math.max(0, Math.min(100, (precipitationAmount / precipitationAmountMax) * 100))
-                    : 0
-                const rainProbabilityPercent = Math.max(0, Math.min(100, point.precipitationProbability || 0))
-                const rainOpacity = Math.min(1, 0.2 + 0.8 * Math.pow(rainProbabilityPercent / 100, 0.65))
-
-                    return (
-                      <div key={point.timestamp} className="text-center px-0.5 pt-2 pb-3">
-                        <p className={`mb-1 h-4 text-[0.65rem] font-semibold tracking-wide text-zinc-400 ${showWeekdayLabel ? 'opacity-100' : 'opacity-0'}`}>
-                          {showWeekdayLabel ? formatWeekdayShort(point.timestamp) : ' '}
-                        </p>
-											<p className="text-s text-zinc-500">{formatHour(point.timestamp)}</p>
-                        <img
-                          src={`/yr/${symbolId}.svg`}
-                          className="mx-auto mt-2 h-11 w-11"
-                          alt={point.symbolCode.replace(/_/g, ' ')}
-                          loading="lazy"
-                        />
-                        <p className="mt-1 text-lg font-normal text-zinc-100">
-                          <span>{Math.ceil(point.airTemperature)}</span>
-                          <span className="opacity-40">°</span>
-                        </p>
-                        <div
-                          className="forecast__rain-block mt-1"
-                          title={`Rain ${precipitationAmount.toFixed(1)} mm, max ${precipitationAmountMax.toFixed(1)} mm, probability ${Math.round(rainProbabilityPercent)}%`}
-                          aria-label={`Rain ${precipitationAmount.toFixed(1)} millimeters, max ${precipitationAmountMax.toFixed(1)} millimeters, probability ${Math.round(rainProbabilityPercent)} percent`}
-                        >
-                          <span
-                            className="forecast__rain-bar"
-                            style={{
-                              ['--rain-height' as string]: `${rainBarHeightPx}px`,
-                              ['--rain-base-height' as string]: `${rainBaseHeightPercent}%`,
-                              ['--rain-opacity' as string]: String(rainOpacity),
-                            } as React.CSSProperties}
-                          ></span>
-                        </div>
-                        <p className="forecast__rain-value">{precipitationAmount > 0 ? precipitationAmount.toFixed(1) : ''}</p>
-                        <div className="mt-1 text-xs text-zinc-300">
-                          <span
-                            className="forecast__data-point--wind"
-                            style={{ ['--wind-direction' as string]: `${point.windFromDirection}deg` }}
-                          >
-                            <span className="forecast__data-point--wind-value">{Math.ceil(point.windSpeed)}</span>
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </div>
+          </div>
+        </section>
       </div>
     </div>
+  )
+}
+
+function BigTemperature(props: { value: number | null }) {
+  if (props.value === null) {
+    return <span>--</span>
+  }
+
+  return (
+    <span className="inline-flex items-start">
+      {props.value.toFixed(1).replace('-', '\u2212')}
+      <span className="ml-3 mt-[0.45em] inline-block h-[0.12em] w-[0.12em] min-h-[14px] min-w-[14px] rounded-full border-[5px] border-[#9a9892]" />
+    </span>
+  )
+}
+
+function formatPlainTemperature(value: number | null, digits: number = 1) {
+  if (value === null || value === undefined) {
+    return '--'
+  }
+
+  const rounded = digits === 0 ? Math.round(value) : Number(value.toFixed(digits))
+
+  return String(digits === 0 ? rounded : rounded.toFixed(digits)).replace('-', '\u2212') + '°'
+}
+
+function ForecastIcon(props: { symbolCode: string }) {
+  const code = props.symbolCode || ''
+  const isNight = code.endsWith('_night')
+  const isClear = code.startsWith('clearsky') || code.startsWith('fair')
+  const hasRain = /rain|sleet|thunder/.test(code)
+  const hasSnow = /snow/.test(code)
+  const svgProps = {
+    viewBox: '0 0 24 24',
+    width: 38,
+    height: 38,
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.3,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-label': code.replace(/_/g, ' '),
+  }
+
+  if (isClear && isNight) {
+    return (
+      <svg {...svgProps}>
+        <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />
+      </svg>
+    )
+  }
+
+  if (isClear) {
+    return (
+      <svg {...svgProps}>
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg {...svgProps}>
+      <path d="M7 15a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17 7.5a3.75 3.75 0 0 1 .5 7.5H7Z" />
+      {hasRain ? <path d="M9 18l-.6 2M12.5 18l-.6 2M16 18l-.6 2" /> : null}
+      {hasSnow && !hasRain ? <path d="M9 18.5h.01M12.5 19.5h.01M16 18.5h.01" strokeWidth={2} /> : null}
+    </svg>
   )
 }
 
@@ -906,6 +696,10 @@ function resolveYrSymbolId(symbolCode: string) {
   return mapped || '04'
 }
 
+function formatShortClock(value: Date) {
+  return value.toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })
+}
+
 function formatClock(value: Date) {
   return value.toLocaleTimeString('fi-FI', {
     hour: '2-digit',
@@ -915,23 +709,19 @@ function formatClock(value: Date) {
 }
 
 function formatHour(timestamp: number) {
-  return new Date(timestamp).toLocaleTimeString('fi-FI', {
-    hour: '2-digit',
-  })
+  return String(new Date(timestamp).getHours()).padStart(2, '0')
 }
 
 function formatHourTick(timestamp: number) {
-  return new Date(timestamp).toLocaleTimeString('fi-FI', {
-    hour: '2-digit',
-  })
+  return String(new Date(timestamp).getHours()).padStart(2, '0')
 }
 
 function formatWeekdayShort(timestamp: number) {
   const shortWeekday = new Date(timestamp).toLocaleDateString('fi-FI', {
     weekday: 'short',
-  })
+  }).replace('.', '')
 
-  return shortWeekday.replace('.', '').toUpperCase()
+  return shortWeekday.charAt(0).toUpperCase() + shortWeekday.slice(1)
 }
 
 function isSameCalendarDay(timestampA: number, timestampB: number) {

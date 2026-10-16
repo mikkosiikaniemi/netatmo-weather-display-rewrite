@@ -3,25 +3,24 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: 'Inter', 'Noto Sans', 'DejaVu Sans', 'Arial', sans-serif;
+  --font-sans: 'DM Sans Variable', 'DM Sans', sans-serif;
   --font-mono: ui-monospace, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
-  --font-temperature: 'Inter Tight', 'Inter', 'Noto Sans', 'DejaVu Sans', 'Arial', sans-serif;
+  --font-temperature: 'DM Sans Variable', 'DM Sans', sans-serif;
   --color-netatmo-dark: #1a1a1a;
   --color-netatmo-darker: #0d0d0d;
 }
 
 :root {
-  font-family: 'Inter', 'Noto Sans', 'DejaVu Sans', Arial, sans-serif;
+  font-family: 'DM Sans Variable', 'DM Sans', sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #101214;
 
   font-synthesis: none;
-  font-feature-settings: 'tnum' 1;
-  text-rendering: optimizeLegibility;
+    text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
