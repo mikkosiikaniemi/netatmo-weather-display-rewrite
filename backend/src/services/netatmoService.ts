@@ -247,7 +247,7 @@ export class NetatmoService {
       : [];
 
     const now = Date.now();
-    const forecastHorizonMs = 9 * 24 * 60 * 60 * 1000;
+    const forecastHorizonMs = 10 * 24 * 60 * 60 * 1000;
     const hourly = timeseries
       .map((entry: any) => {
         const ts = new Date(entry.time).getTime();

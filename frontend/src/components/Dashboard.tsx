@@ -5,7 +5,7 @@ import { useSensorReadings } from '../hooks/useSensorReadings'
 import { useWeatherData } from '../hooks/useWeatherData'
 import { useStationHistory } from '../hooks/useStationHistory'
 import { SensorReadingCard, groupReadingsByDevice } from './SensorReadingsWidget'
-import { ModuleHistory, StationHistoryResponse } from '../types/weather'
+import { ForecastPoint, ModuleHistory, StationHistoryResponse } from '../types/weather'
 
 const QUERY_REFETCH_INTERVAL_MS = 10.5 * 60 * 1000
 
@@ -458,6 +458,10 @@ function Dashboard(props: DashboardProps) {
     [indoorModules.length, sensorDevices.length]
   )
   const forecastCells = forecastDayGroups.flatMap((group) => group.points).slice(0, 6)
+  const longTermForecast = useMemo(
+    () => buildLongTermForecast(forecastQuery.data ? forecastQuery.data.hourly : [], new Date(), FORECAST_TIME_ZONE),
+    [forecastQuery.data]
+  )
   const sixHourTicks = [0, 6, 12, 18, 24].map((hour) => dayWindow.start + hour * 60 * 60 * 1000)
   const lastOutdoorPoint = [...outdoorChartData].reverse().find((point) => typeof point.temperature === 'number') || null
   const indoorCards = [
@@ -587,6 +591,29 @@ function Dashboard(props: DashboardProps) {
               )
             })}
           </div>
+
+          {longTermForecast.length > 0 ? (
+            <div className="mt-10 overflow-x-auto border-t border-white/[0.06] pt-4">
+              <div className="long-term-forecast">
+                {longTermForecast.map((day) => (
+                  <div className="flex min-w-0 flex-col items-center gap-1.5 text-center" key={day.dateKey}>
+                    <p className="text-xs tabular-nums text-[#777772]">{day.dayNumber}</p>
+                    <div className="text-[#a3a29c]">
+                      <ForecastIcon symbolCode={day.symbolCode} size={24} />
+                    </div>
+                    <p className="long-term-forecast__temperatures text-[11px] tabular-nums text-[#a3a29c]">
+                      <span>{formatPlainTemperature(day.highTemperature, 0)}</span>
+                      <span className="long-term-forecast__temperature-separator text-white/30">·</span>
+                      <span>{formatPlainTemperature(day.lowTemperature, 0)}</span>
+                    </p>
+                    {day.precipitationAmount > 0 ? (
+                      <p className="text-[11px] tabular-nums text-[#6ba3e0]">{day.precipitationAmount.toFixed(1)} mm</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
       </div>
     </div>
@@ -618,7 +645,7 @@ function formatPlainTemperature(value: number | null, digits: number = 1) {
   return String(digits === 0 ? rounded : rounded.toFixed(digits)).replace('-', '\u2212') + '°'
 }
 
-function ForecastIcon(props: { symbolCode: string }) {
+function ForecastIcon(props: { symbolCode: string; size?: number }) {
   const code = props.symbolCode || ''
   const isNight = code.endsWith('_night')
   const isClear = code.startsWith('clearsky') || code.startsWith('fair')
@@ -626,8 +653,8 @@ function ForecastIcon(props: { symbolCode: string }) {
   const hasSnow = /snow/.test(code)
   const svgProps = {
     viewBox: '0 0 24 24',
-    width: 38,
-    height: 38,
+    width: props.size || 38,
+    height: props.size || 38,
     fill: 'none',
     stroke: 'currentColor',
     strokeWidth: 1.3,
@@ -660,6 +687,46 @@ function ForecastIcon(props: { symbolCode: string }) {
       {hasSnow && !hasRain ? <path d="M9 18.5h.01M12.5 19.5h.01M16 18.5h.01" strokeWidth={2} /> : null}
     </svg>
   )
+}
+
+function buildLongTermForecast(points: ForecastPoint[], referenceDate: Date, timeZone: string) {
+  const today = getZonedDateParts(referenceDate, timeZone)
+  const todayKey = [today.year, String(today.month).padStart(2, '0'), String(today.day).padStart(2, '0')].join('-')
+  const groupedPoints = new Map<string, ForecastPoint[]>()
+
+  points.forEach((point) => {
+    const dateParts = getZonedDateParts(new Date(point.timestamp), timeZone)
+    const dateKey = [dateParts.year, String(dateParts.month).padStart(2, '0'), String(dateParts.day).padStart(2, '0')].join('-')
+
+    if (dateKey <= todayKey) {
+      return
+    }
+
+    const dayPoints = groupedPoints.get(dateKey) || []
+    dayPoints.push(point)
+    groupedPoints.set(dateKey, dayPoints)
+  })
+
+  return Array.from(groupedPoints.entries())
+    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+    .slice(0, 9)
+    .map(([dateKey, dayPoints]) => {
+      const middayPoint = dayPoints.reduce((closest, point) => {
+        const pointHour = getZonedDateParts(new Date(point.timestamp), timeZone, true).hour
+        const closestHour = getZonedDateParts(new Date(closest.timestamp), timeZone, true).hour
+        return Math.abs(pointHour - 12) < Math.abs(closestHour - 12) ? point : closest
+      }, dayPoints[0])
+      const dayNumber = Number(dateKey.slice(-2))
+
+      return {
+        dateKey,
+        dayNumber,
+        symbolCode: middayPoint.symbolCode,
+        precipitationAmount: dayPoints.reduce((total, point) => total + Math.max(0, point.precipitationAmount), 0),
+        highTemperature: Math.max(...dayPoints.map((point) => point.airTemperature)),
+        lowTemperature: Math.min(...dayPoints.map((point) => point.airTemperature)),
+      }
+    })
 }
 
 function formatDate(value: Date) {

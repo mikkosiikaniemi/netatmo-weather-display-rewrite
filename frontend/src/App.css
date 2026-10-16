@@ -104,3 +104,27 @@
 .forecast-grid {
 	grid-template-columns: repeat(var(--forecast-points-count, 1), minmax(0, 1fr)) !important;
 }
+
+.long-term-forecast {
+	display: grid;
+	width: 100%;
+	grid-template-columns: repeat(9, minmax(0, 1fr));
+}
+
+.long-term-forecast__temperatures {
+	display: flex;
+	justify-content: center;
+	gap: 0.2rem;
+}
+
+@media (max-width: 640px) {
+	.long-term-forecast__temperatures {
+		flex-direction: column;
+		gap: 0;
+		line-height: 1.1;
+	}
+
+	.long-term-forecast__temperature-separator {
+		display: none;
+	}
+}
