@@ -577,12 +577,12 @@ function Dashboard(props: DashboardProps) {
                   <div className={'mt-5 ' + (precipitationAmount > 0 ? 'text-[#6ba3e0]' : 'text-[#9a9892]')}>
                     <ForecastIcon symbolCode={point.symbolCode} />
                   </div>
-                  <p className="mt-5 flex items-baseline gap-3 text-[34px] font-light leading-none tracking-[-0.02em]">
+                  <p className="mt-5 text-[34px] font-light leading-none tracking-[-0.02em]">
                     {formatPlainTemperature(point.airTemperature, 0)}
-                    {precipitationAmount > 0 ? (
-                      <span className="text-[17px] tracking-normal text-[#6ba3e0]">{precipitationAmount.toFixed(1)} mm</span>
-                    ) : null}
                   </p>
+                  {precipitationAmount > 0 ? (
+                    <p className="mt-2 text-[17px] text-[#6ba3e0]">{precipitationAmount.toFixed(1)} mm</p>
+                  ) : null}
                 </div>
               )
             })}
