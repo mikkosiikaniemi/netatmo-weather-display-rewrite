@@ -524,7 +524,7 @@ function Dashboard(props: DashboardProps) {
                         tickLine={false}
                         axisLine={false}
                         tickMargin={14}
-                        tick={{ fontSize: 17, fill: '#6f6e6a' }}
+                        tick={{ fontSize: 12, fill: '#6f6e6a' }}
                         padding={{ left: 0, right: 0 }}
                       />
                       <YAxis hide domain={outdoorTemperatureDomain} />
