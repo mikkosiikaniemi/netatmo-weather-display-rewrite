@@ -128,7 +128,26 @@ interface DashboardHeaderProps {
   historyFetchedAt: string | null
 }
 
-const DashboardHeader = React.memo(function DashboardHeader(props: DashboardHeaderProps) {
+const DashboardHeader = React.memo(function DashboardHeader() {
+  const [now, setNow] = useState<Date>(new Date())
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date())
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
+
+  return (
+    <section className="flex items-center justify-between">
+      <p className="text-[26px] text-[#9a9892]">{formatDate(now)}</p>
+      <p className="text-[26px] text-[#9a9892]">{formatShortClock(now)}</p>
+    </section>
+  )
+})
+
+const DashboardControls = React.memo(function DashboardControls(props: DashboardHeaderProps) {
   const [now, setNow] = useState<Date>(new Date())
   const [isMetaOpen, setIsMetaOpen] = useState(false)
 
@@ -152,10 +171,7 @@ const DashboardHeader = React.memo(function DashboardHeader(props: DashboardHead
   }, [])
 
   return (
-    <section>
-      <div className="grid gap-4 grid-cols-[auto_auto_auto] items-center">
-        <p className="text-[26px] text-[#9a9892]">{formatDate(now)}</p>
-        <div className="relative flex items-center gap-2 justify-center self-center">
+    <div className="relative flex items-center justify-end gap-2">
           <button
             onClick={props.onRefresh}
             className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#4a4b4c] transition-colors hover:bg-white/10 hover:text-zinc-200"
@@ -195,7 +211,7 @@ const DashboardHeader = React.memo(function DashboardHeader(props: DashboardHead
             </svg>
           </button>
           {isMetaOpen ? (
-            <div className="absolute right-0 top-full z-20 mt-2 w-[min(92vw,22rem)] rounded-lg border border-zinc-700 bg-zinc-950 p-3 text-sm text-zinc-200 shadow-xl backdrop-blur">
+            <div className="absolute bottom-full right-0 z-20 mb-2 w-[min(92vw,22rem)] rounded-lg border border-zinc-700 bg-zinc-950 p-3 text-sm text-zinc-200 shadow-xl backdrop-blur">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">Info</p>
               <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
                 <span className="text-zinc-400">Sunrise</span>
@@ -214,11 +230,9 @@ const DashboardHeader = React.memo(function DashboardHeader(props: DashboardHead
             </div>
           ) : null}
         </div>
-        <p className="text-[26px] text-[#9a9892] justify-self-end md:text-right">{formatShortClock(now)}</p>
-      </div>
-    </section>
   )
 })
+
 
 function Dashboard(props: DashboardProps) {
   const weatherQuery = useWeatherData()
@@ -464,7 +478,7 @@ function Dashboard(props: DashboardProps) {
   )
   const sixHourTicks = [0, 6, 12, 18, 24].map((hour) => dayWindow.start + hour * 60 * 60 * 1000)
   const lastOutdoorPoint = [...outdoorChartData].reverse().find((point) => typeof point.temperature === 'number') || null
-  const indoorCards = [
+  const allCards = [
     ...indoorModules.map((module) => ({ id: module.id, name: module.name, temperature: module.temperature, humidity: module.humidity })),
     ...sensorDevices.map((device) => ({
       id: device.deviceId,
@@ -473,24 +487,19 @@ function Dashboard(props: DashboardProps) {
       humidity: device.latest ? device.latest.humidity : null,
     })),
   ]
+  const terraceCard = allCards.find((card) => /terassi|terrace/i.test(card.name)) || null
+  const indoorCards = allCards.filter((card) => card !== terraceCard)
 
   return (
     <div className="min-h-screen bg-[#101214] text-[#efece6]">
       <div className="mx-auto w-full max-w-[1100px] px-6 py-7 md:px-[50px]">
-        <DashboardHeader
-          onRefresh={handleRefresh}
-          onLogout={props.onLogout}
-          stationLatitude={selectedStation ? selectedStation.latitude : null}
-          stationLongitude={selectedStation ? selectedStation.longitude : null}
-          overviewFetchedAt={weatherQuery.data ? weatherQuery.data.fetchedAt : null}
-          historyFetchedAt={historyQuery.data ? historyQuery.data.fetchedAt : null}
-        />
+        <DashboardHeader />
 
-        <section className="mt-9 grid grid-cols-1 gap-6 md:grid-cols-[1fr_1.2fr]">
+        <section className="mt-9 grid grid-cols-1 gap-6 md:grid-cols-[1fr_1.7fr]">
           {outdoorModule ? (
             <>
-              <div className="flex flex-col items-center text-center">
-                <p className="flex items-center gap-2 text-[17px] font-semibold text-[#9a9892]" title={'Last seen: ' + formatLastSeen(outdoorModule.lastSeenAt)}>
+              <div className="flex flex-col items-start text-left">
+                <p className="flex items-center gap-2 text-[17px] text-[#9a9892]" title={'Last seen: ' + formatLastSeen(outdoorModule.lastSeenAt)}>
                   {outdoorModule.name}
                   {outdoorHistoryFetchFailed ? (
                     <HistoryWarningIcon
@@ -505,15 +514,23 @@ function Dashboard(props: DashboardProps) {
                 <p className="mt-2 text-[clamp(9rem,21vw,15rem)] font-light leading-[0.95] text-[#efece6]">
                   <BigTemperature value={outdoorModule.temperature} />
                 </p>
-                <p className="mt-4 flex flex-wrap justify-center gap-x-8 gap-y-1 text-[17px] text-[#9a9892]">
+                <p className="mt-4 flex flex-wrap gap-x-8 gap-y-1 text-[17px] text-[#9a9892]">
                   <span>Alin {formatPlainTemperature(outdoorModule.minTemperature)}</span>
                   <span>Ylin {formatPlainTemperature(outdoorModule.maxTemperature)}</span>
-                  <span>Kosteus {outdoorModule.humidity !== null ? outdoorModule.humidity + ' %' : '--'}</span>
-                  {hasOutdoorRainToday ? <span className="text-[#6ba3e0]">{outdoorRainTodayAmount.toFixed(1)} mm</span> : null}
+                  <span>{outdoorModule.humidity !== null ? outdoorModule.humidity + ' %' : '--'}</span>
                 </p>
+                {terraceCard ? (
+                  <p className="mt-3 text-[15px] text-[#6f6e6a]">
+                    {terraceCard.name} {formatPlainTemperature(terraceCard.temperature)}
+                    {terraceCard.humidity !== null ? ' · ' + Math.round(terraceCard.humidity) + ' %' : ''}
+                  </p>
+                ) : null}
               </div>
 
-              <div className="h-56 self-end md:h-60">
+              <div className="relative h-56 self-end md:h-60">
+                {hasOutdoorRainToday ? (
+                  <p className="absolute right-0 top-[-1.5rem] text-[17px] text-[#6ba3e0]">{outdoorRainTodayAmount.toFixed(1)} mm</p>
+                ) : null}
                 {outdoorChartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%" debounce={120}>
                     <LineChart data={outdoorChartData} margin={{ top: 20, right: 0, bottom: 0, left: 0 }}>
@@ -528,7 +545,7 @@ function Dashboard(props: DashboardProps) {
                         tickLine={false}
                         axisLine={false}
                         tickMargin={14}
-                        tick={{ fontSize: 12, fill: '#6f6e6a' }}
+                        tick={{ fontSize: 15, fill: '#6f6e6a' }}
                         padding={{ left: 0, right: 0 }}
                       />
                       <YAxis
@@ -536,10 +553,10 @@ function Dashboard(props: DashboardProps) {
                         ticks={outdoorTemperatureTicks}
                         interval={0}
                         tickFormatter={(value: number | string) => formatTemperatureTickLabel(value, outdoorTemperatureDomain)}
-                        tick={{ fontSize: 10, fill: '#6f6e6a' }}
+                        tick={false}
                         tickLine={false}
                         axisLine={false}
-                        width={30}
+                        width={0}
                       />
                       <YAxis
                         yAxisId="rain"
@@ -550,7 +567,7 @@ function Dashboard(props: DashboardProps) {
                         axisLine={false}
                         width={0}
                       />
-                      <CartesianGrid horizontal vertical={false} stroke="rgba(255,255,255,0.12)" />
+                      <CartesianGrid horizontal vertical={false} stroke="rgba(255,255,255,0.07)" />
                       <ReferenceLine y={0} stroke="rgba(255,255,255,0.08)" />
                       <Bar
                         dataKey="rain"
@@ -581,11 +598,11 @@ function Dashboard(props: DashboardProps) {
 
         <hr className="my-7 border-0 border-t border-white/[0.06]" />
 
-        <section className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
+        <section className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3">
           {indoorCards.map((card) => (
-            <div key={card.id} className="text-center">
-              <p className="text-[17px] font-semibold text-[#9a9892]">{card.name}</p>
-              <p className="mt-4 text-[clamp(4rem,8vw,6rem)] font-light leading-none">
+            <div key={card.id} className="text-left">
+              <p className="text-[17px] text-[#9a9892]">{card.name}</p>
+              <p className="mt-4 text-[clamp(4rem,8vw,5.5rem)] font-light leading-none">
                 <TemperatureReading value={card.temperature} />
               </p>
               <p className="mt-4 text-[17px] text-[#6f6e6a]">{card.humidity !== null ? Math.round(card.humidity) + ' %' : '--'}</p>
@@ -599,12 +616,15 @@ function Dashboard(props: DashboardProps) {
           {forecastQuery.isLoading ? <p className="text-[#6f6e6a]">Loading forecast...</p> : null}
           {forecastQuery.isError ? <p className="text-rose-300">Forecast unavailable right now.</p> : null}
           <div className="grid grid-cols-3 gap-x-6 gap-y-8 md:grid-cols-6">
-            {forecastCells.map((point) => {
+            {forecastCells.map((point, index) => {
               const precipitationAmount = Math.max(0, point.precipitationAmount)
+              const previousPoint = index > 0 ? forecastCells[index - 1] : null
+              const showWeekday = !previousPoint || !isSameCalendarDay(previousPoint.timestamp, point.timestamp)
 
               return (
                 <div key={point.timestamp} className="text-center">
-                  <p className="text-[17px] text-[#9a9892]">{formatWeekdayShort(point.timestamp)} {formatHour(point.timestamp)}</p>
+                  <p className="h-5 text-[15px] text-[#6f6e6a]">{showWeekday ? formatWeekdayShort(point.timestamp) : ''}</p>
+                  <p className="mt-3 text-[17px] text-[#9a9892]">{formatHour(point.timestamp)}</p>
                   <div className={'mt-4 flex justify-center ' + (precipitationAmount > 0 ? 'text-[#6ba3e0]' : 'text-[#9a9892]')}>
                     <ForecastIcon symbolCode={point.symbolCode} />
                   </div>
@@ -620,21 +640,20 @@ function Dashboard(props: DashboardProps) {
           </div>
 
           {longTermForecast.length > 0 ? (
-            <div className="mt-8 overflow-x-auto border-t border-white/[0.06] pt-6">
+            <div className="mt-8 overflow-x-auto border-t border-white/[0.06] pt-8">
               <div className="long-term-forecast">
                 {longTermForecast.map((day) => (
-                  <div className="flex min-w-0 flex-col items-center gap-1.5 text-center" key={day.dateKey}>
-                    <p className="text-xs tabular-nums text-[#777772]">{day.dayNumber}</p>
+                  <div className="flex min-w-0 flex-col items-center gap-3 text-center" key={day.dateKey}>
+                    <p className="text-[17px] text-[#9a9892]">{day.weekday}</p>
                     <div className="text-[#a3a29c]">
-                      <ForecastIcon symbolCode={day.symbolCode} size={24} />
+                      <ForecastIcon symbolCode={day.symbolCode} size={32} />
                     </div>
-                    <p className="long-term-forecast__temperatures text-[11px] tabular-nums text-[#a3a29c]">
+                    <p className="long-term-forecast__temperatures text-[24px] font-light tabular-nums text-[#efece6]">
                       <span>{formatPlainTemperature(day.highTemperature, 0)}</span>
-                      <span className="long-term-forecast__temperature-separator text-white/30">·</span>
-                      <span>{formatPlainTemperature(day.lowTemperature, 0)}</span>
+                      <span className="text-[#6f6e6a]">{formatPlainTemperature(day.lowTemperature, 0)}</span>
                     </p>
                     {day.precipitationAmount > 0 ? (
-                      <p className="text-[11px] tabular-nums text-[#6ba3e0]">{day.precipitationAmount.toFixed(1)} mm</p>
+                      <p className="text-[15px] tabular-nums text-[#6ba3e0]">{day.precipitationAmount.toFixed(1)} mm</p>
                     ) : null}
                   </div>
                 ))}
@@ -642,6 +661,17 @@ function Dashboard(props: DashboardProps) {
             </div>
           ) : null}
         </section>
+
+        <div className="mt-10">
+          <DashboardControls
+            onRefresh={handleRefresh}
+            onLogout={props.onLogout}
+            stationLatitude={selectedStation ? selectedStation.latitude : null}
+            stationLongitude={selectedStation ? selectedStation.longitude : null}
+            overviewFetchedAt={weatherQuery.data ? weatherQuery.data.fetchedAt : null}
+            historyFetchedAt={historyQuery.data ? historyQuery.data.fetchedAt : null}
+          />
+        </div>
       </div>
     </div>
   )
@@ -657,7 +687,7 @@ function BigTemperature(props: { value: number | null }) {
   return (
     <span className="inline-flex items-baseline">
       {mainDigits}
-      <span className="ml-[0.14em] text-[0.5em] tracking-wide opacity-45">{fractionalDigit}°</span>
+      <span className="ml-[0.02em] text-[0.5em] tracking-wide opacity-45">.{fractionalDigit}°</span>
     </span>
   )
 }
@@ -736,7 +766,7 @@ function buildLongTermForecast(points: ForecastPoint[], referenceDate: Date, tim
 
   return Array.from(groupedPoints.entries())
     .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
-    .slice(0, 9)
+    .slice(0, 7)
     .map(([dateKey, dayPoints]) => {
       const middayPoint = dayPoints.reduce((closest, point) => {
         const pointHour = getZonedDateParts(new Date(point.timestamp), timeZone, true).hour
@@ -748,6 +778,7 @@ function buildLongTermForecast(points: ForecastPoint[], referenceDate: Date, tim
       return {
         dateKey,
         dayNumber,
+        weekday: formatWeekdayShort(new Date(dateKey + 'T12:00:00').getTime()),
         symbolCode: middayPoint.symbolCode,
         precipitationAmount: dayPoints.reduce((total, point) => total + Math.max(0, point.precipitationAmount), 0),
         highTemperature: Math.max(...dayPoints.map((point) => point.airTemperature)),
@@ -775,7 +806,7 @@ function TemperatureReading(props: { value: number | null }) {
   return (
     <span className="inline-flex items-baseline">
       {mainDigits}
-      <span className="ml-[0.14em] text-[0.55em] tracking-wide opacity-45">{fractionalDigit}°</span>
+      <span className="ml-[0.02em] text-[0.55em] tracking-wide opacity-45">.{fractionalDigit}°</span>
     </span>
   )
 }
@@ -793,7 +824,7 @@ function resolveYrSymbolId(symbolCode: string) {
 }
 
 function formatShortClock(value: Date) {
-  return value.toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })
+  return value.toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' }).replace(':', '.')
 }
 
 function formatClock(value: Date) {
