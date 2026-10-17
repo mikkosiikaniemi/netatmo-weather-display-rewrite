@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Bar, CartesianGrid, Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useForecastData } from '../hooks/useForecastData'
 import { useSensorReadings } from '../hooks/useSensorReadings'
 import { useWeatherData } from '../hooks/useWeatherData'
@@ -477,7 +477,6 @@ function Dashboard(props: DashboardProps) {
     [forecastQuery.data]
   )
   const sixHourTicks = [0, 6, 12, 18, 24].map((hour) => dayWindow.start + hour * 60 * 60 * 1000)
-  const lastOutdoorPoint = [...outdoorChartData].reverse().find((point) => typeof point.temperature === 'number') || null
   const allCards = [
     ...indoorModules.map((module) => ({ id: module.id, name: module.name, temperature: module.temperature, humidity: module.humidity })),
     ...sensorDevices.map((device) => ({
@@ -579,9 +578,6 @@ function Dashboard(props: DashboardProps) {
                       />
                       <Tooltip content={<OutdoorChartTooltip />} />
                       <Line type="monotone" dataKey="temperature" stroke={ACCENT_COLOR} strokeWidth={3} dot={false} isAnimationActive={false} />
-                      {lastOutdoorPoint ? (
-                        <ReferenceDot x={lastOutdoorPoint.timestamp} y={lastOutdoorPoint.temperature as number} r={8} fill={ACCENT_COLOR} stroke="none" />
-                      ) : null}
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
