@@ -128,7 +128,7 @@ interface DashboardHeaderProps {
   historyFetchedAt: string | null
 }
 
-const DashboardHeader = React.memo(function DashboardHeader() {
+const DashboardHeader = React.memo(function DashboardHeader(props: DashboardHeaderProps) {
   const [now, setNow] = useState<Date>(new Date())
 
   useEffect(() => {
@@ -140,9 +140,12 @@ const DashboardHeader = React.memo(function DashboardHeader() {
   }, [])
 
   return (
-    <section className="flex items-center justify-between">
+    <section className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <p className="text-[26px] text-[#9a9892]">{formatDate(now)}</p>
-      <p className="text-[26px] text-[#9a9892]">{formatShortClock(now)}</p>
+      <div className="flex items-center gap-6">
+        <DashboardControls {...props} />
+        <p className="text-[26px] text-[#9a9892]">{formatShortClock(now)}</p>
+      </div>
     </section>
   )
 })
@@ -211,7 +214,7 @@ const DashboardControls = React.memo(function DashboardControls(props: Dashboard
             </svg>
           </button>
           {isMetaOpen ? (
-            <div className="absolute bottom-full right-0 z-20 mb-2 w-[min(92vw,22rem)] rounded-lg border border-zinc-700 bg-zinc-950 p-3 text-sm text-zinc-200 shadow-xl backdrop-blur">
+            <div className="absolute right-0 top-full z-20 mt-2 w-[min(92vw,22rem)] rounded-lg border border-zinc-700 bg-zinc-950 p-3 text-sm text-zinc-200 shadow-xl backdrop-blur">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">Info</p>
               <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
                 <span className="text-zinc-400">Sunrise</span>
@@ -478,12 +481,19 @@ function Dashboard(props: DashboardProps) {
   )
   const sixHourTicks = [0, 6, 12, 18, 24].map((hour) => dayWindow.start + hour * 60 * 60 * 1000)
   const allCards = [
-    ...indoorModules.map((module) => ({ id: module.id, name: module.name, temperature: module.temperature, humidity: module.humidity })),
+    ...indoorModules.map((module) => ({
+      id: module.id,
+      name: module.name,
+      temperature: module.temperature,
+      humidity: module.humidity,
+      co2: module.co2,
+    })),
     ...sensorDevices.map((device) => ({
       id: device.deviceId,
       name: device.name || device.deviceId,
       temperature: device.latest ? device.latest.temperature : null,
       humidity: device.latest ? device.latest.humidity : null,
+      co2: device.latest ? device.latest.values.co2 ?? device.latest.values.CO2 ?? null : null,
     })),
   ]
   const terraceCard = allCards.find((card) => /terassi|terrace/i.test(card.name)) || null
@@ -492,7 +502,14 @@ function Dashboard(props: DashboardProps) {
   return (
     <div className="min-h-screen bg-[#101214] text-[#efece6]">
       <div className="mx-auto w-full max-w-[1100px] px-6 py-7 md:px-[50px]">
-        <DashboardHeader />
+        <DashboardHeader
+          onRefresh={handleRefresh}
+          onLogout={props.onLogout}
+          stationLatitude={selectedStation ? selectedStation.latitude : null}
+          stationLongitude={selectedStation ? selectedStation.longitude : null}
+          overviewFetchedAt={weatherQuery.data ? weatherQuery.data.fetchedAt : null}
+          historyFetchedAt={historyQuery.data ? historyQuery.data.fetchedAt : null}
+        />
 
         <section className="mt-9 grid grid-cols-1 gap-6 md:grid-cols-[1fr_1.7fr]">
           {outdoorModule ? (
@@ -539,13 +556,13 @@ function Dashboard(props: DashboardProps) {
                         domain={[dayWindow.start, dayWindow.end]}
                         allowDataOverflow
                         ticks={sixHourTicks}
-                        tickFormatter={formatHourTick}
+                        tickFormatter={(timestamp, index) => formatHourTick(timestamp, index === sixHourTicks.length - 1)}
                         interval={0}
                         tickLine={false}
                         axisLine={false}
                         tickMargin={14}
-                        tick={{ fontSize: 15, fill: '#6f6e6a' }}
-                        padding={{ left: 0, right: 0 }}
+                        tick={{ fontSize: 12, fill: '#6f6e6a' }}
+                        padding={{ left: 12, right: 12 }}
                       />
                       <YAxis
                         domain={outdoorTemperatureDomain}
@@ -566,7 +583,20 @@ function Dashboard(props: DashboardProps) {
                         axisLine={false}
                         width={0}
                       />
-                      <CartesianGrid horizontal vertical={false} stroke="rgba(255,255,255,0.07)" />
+                      <CartesianGrid
+                        horizontal={({ x1, y1, x2, y2, offset, stroke, strokeWidth }) => (
+                          <line
+                            x1={x1}
+                            y1={y1}
+                            x2={x2}
+                            y2={y2}
+                            stroke={y1 === offset.top ? 'transparent' : stroke}
+                            strokeWidth={strokeWidth}
+                          />
+                        )}
+                        vertical={false}
+                        stroke="rgba(255,255,255,0.07)"
+                      />
                       <ReferenceLine y={0} stroke="rgba(255,255,255,0.08)" />
                       <Bar
                         dataKey="rain"
@@ -596,12 +626,20 @@ function Dashboard(props: DashboardProps) {
 
         <section className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3">
           {indoorCards.map((card) => (
-            <div key={card.id} className="text-left">
+            <div key={card.id} className="text-center">
               <p className="text-[17px] text-[#9a9892]">{card.name}</p>
               <p className="mt-4 text-[clamp(4rem,8vw,5.5rem)] font-light leading-none">
                 <TemperatureReading value={card.temperature} />
               </p>
-              <p className="mt-4 text-[17px] text-[#6f6e6a]">{card.humidity !== null ? Math.round(card.humidity) + ' %' : '--'}</p>
+              <p className="mt-4 text-[17px] text-[#6f6e6a]">
+                {card.humidity !== null ? Math.round(card.humidity) + ' %' : '--'}
+                {card.co2 !== null ? (
+                  <>
+                    <span className="mx-2 text-[#454542]">·</span>
+                    {Math.round(card.co2)} ppm
+                  </>
+                ) : null}
+              </p>
             </div>
           ))}
         </section>
@@ -619,8 +657,10 @@ function Dashboard(props: DashboardProps) {
 
               return (
                 <div key={point.timestamp} className="text-center">
-                  <p className="h-5 text-[15px] text-[#6f6e6a]">{showWeekday ? formatWeekdayShort(point.timestamp) : ''}</p>
-                  <p className="mt-3 text-[17px] text-[#9a9892]">{formatHour(point.timestamp)}</p>
+                  <p className="text-[17px] text-[#9a9892]">
+                    {showWeekday ? formatWeekdayShort(point.timestamp) + ' ' : ''}
+                    {formatHour(point.timestamp)}
+                  </p>
                   <div className={'mt-4 flex justify-center ' + (precipitationAmount > 0 ? 'text-[#6ba3e0]' : 'text-[#9a9892]')}>
                     <ForecastIcon symbolCode={point.symbolCode} />
                   </div>
@@ -640,7 +680,7 @@ function Dashboard(props: DashboardProps) {
               <div className="long-term-forecast">
                 {longTermForecast.map((day) => (
                   <div className="flex min-w-0 flex-col items-center gap-3 text-center" key={day.dateKey}>
-                    <p className="text-[17px] text-[#9a9892]">{day.weekday}</p>
+                    <p className="text-[17px] text-[#9a9892]">{day.weekday} {day.dayNumber}</p>
                     <div className="text-[#a3a29c]">
                       <ForecastIcon symbolCode={day.symbolCode} size={32} />
                     </div>
@@ -658,16 +698,6 @@ function Dashboard(props: DashboardProps) {
           ) : null}
         </section>
 
-        <div className="mt-10">
-          <DashboardControls
-            onRefresh={handleRefresh}
-            onLogout={props.onLogout}
-            stationLatitude={selectedStation ? selectedStation.latitude : null}
-            stationLongitude={selectedStation ? selectedStation.longitude : null}
-            overviewFetchedAt={weatherQuery.data ? weatherQuery.data.fetchedAt : null}
-            historyFetchedAt={historyQuery.data ? historyQuery.data.fetchedAt : null}
-          />
-        </div>
       </div>
     </div>
   )
@@ -835,8 +865,8 @@ function formatHour(timestamp: number) {
   return String(new Date(timestamp).getHours()).padStart(2, '0')
 }
 
-function formatHourTick(timestamp: number) {
-  return String(new Date(timestamp).getHours()).padStart(2, '0')
+function formatHourTick(timestamp: number, isEndOfDay: boolean) {
+  return isEndOfDay ? '24' : String(new Date(timestamp).getHours())
 }
 
 function formatWeekdayShort(timestamp: number) {
