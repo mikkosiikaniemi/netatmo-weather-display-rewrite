@@ -216,10 +216,10 @@ DEPLOY_ENV_FILE=/path/to/custom.deploy.env ./deploy.sh
 
 The script will:
 
-1. Sync this repository to Opalstack using `rsync`.
-1. Preserve `backend/.env` on the server.
-1. Install frontend and backend dependencies on Opalstack.
-1. Build frontend and backend on Opalstack.
+1. Install dependencies and build the frontend and backend locally.
+1. Sync the repository and built assets to Opalstack using `rsync`.
+1. Preserve `backend/.env` and `backend/data/` on the server.
+1. Install only backend runtime dependencies on Opalstack.
 1. Restart the app via Opalstack `stop` and `start` scripts when available.
 
 ## Credits

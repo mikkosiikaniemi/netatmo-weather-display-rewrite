@@ -65,12 +65,18 @@ echo "[deploy] Remote SSH target: $OPALSTACK_SSH"
 echo "[deploy] Remote app root: $OPALSTACK_APP_ROOT"
 echo "[deploy] Remote project dir: $OPALSTACK_PROJECT_DIR"
 
-for cmd in ssh rsync; do
+for cmd in npm ssh rsync; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "[deploy] Error: '$cmd' is required but not installed locally."
     exit 1
   fi
 done
+
+echo "[deploy] Installing dependencies and building locally"
+(cd "$SCRIPT_DIR/frontend" && npm ci --userconfig="$SCRIPT_DIR/.npmrc")
+(cd "$SCRIPT_DIR/backend" && npm ci --userconfig="$SCRIPT_DIR/.npmrc")
+npm --prefix "$SCRIPT_DIR/frontend" run build
+npm --prefix "$SCRIPT_DIR/backend" run build
 
 echo "[deploy] Ensuring remote project directory exists"
 ssh "$OPALSTACK_SSH" "mkdir -p '$OPALSTACK_PROJECT_DIR'"
@@ -86,11 +92,9 @@ rsync -az --delete \
   --exclude='frontend/node_modules/' \
   --exclude='backend/.env' \
   --exclude='backend/data/' \
-  --exclude='frontend/dist/' \
-  --exclude='backend/dist/' \
   "$SCRIPT_DIR/" "$OPALSTACK_SSH:$OPALSTACK_PROJECT_DIR/"
 
-echo "[deploy] Installing dependencies and building on Opalstack"
+echo "[deploy] Installing backend runtime dependencies on Opalstack"
 ssh "$OPALSTACK_SSH" \
   OPALSTACK_PROJECT_DIR="$OPALSTACK_PROJECT_DIR" \
   OPALSTACK_APP_ROOT="$OPALSTACK_APP_ROOT" \
@@ -108,17 +112,12 @@ fi
 
 cd "$OPALSTACK_PROJECT_DIR"
 
-# Deploy project npm policy to both package roots so installs use repo-pinned config.
+# Deploy project npm policy to the backend package root for the runtime install.
 if [ -f "$OPALSTACK_PROJECT_DIR/.npmrc" ]; then
-  cp "$OPALSTACK_PROJECT_DIR/.npmrc" "$OPALSTACK_PROJECT_DIR/frontend/.npmrc"
   cp "$OPALSTACK_PROJECT_DIR/.npmrc" "$OPALSTACK_PROJECT_DIR/backend/.npmrc"
 fi
 
-(cd frontend && npm ci)
-(cd backend && npm ci)
-
-npm --prefix frontend run build
-npm --prefix backend run build
+(cd backend && npm ci --omit=dev)
 
 if [ -x "$OPALSTACK_APP_ROOT/stop" ] && [ -x "$OPALSTACK_APP_ROOT/start" ]; then
   "$OPALSTACK_APP_ROOT/stop" || true
