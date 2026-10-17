@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { CartesianGrid, Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useForecastData } from '../hooks/useForecastData'
 import { useSensorReadings } from '../hooks/useSensorReadings'
 import { useWeatherData } from '../hooks/useWeatherData'
@@ -486,11 +486,11 @@ function Dashboard(props: DashboardProps) {
           historyFetchedAt={historyQuery.data ? historyQuery.data.fetchedAt : null}
         />
 
-        <section className="mt-9 grid grid-cols-1 gap-8 md:grid-cols-[1fr_1.2fr] md:gap-16">
+        <section className="mt-9 grid grid-cols-1 gap-6 md:grid-cols-[1fr_1.2fr]">
           {outdoorModule ? (
             <>
-              <div className="flex flex-col">
-                <p className="flex items-center gap-2 text-[17px] text-[#9a9892]" title={'Last seen: ' + formatLastSeen(outdoorModule.lastSeenAt)}>
+              <div className="flex flex-col items-center text-center">
+                <p className="flex items-center gap-2 text-[17px] font-semibold text-[#9a9892]" title={'Last seen: ' + formatLastSeen(outdoorModule.lastSeenAt)}>
                   {outdoorModule.name}
                   {outdoorHistoryFetchFailed ? (
                     <HistoryWarningIcon
@@ -505,7 +505,7 @@ function Dashboard(props: DashboardProps) {
                 <p className="mt-2 text-[clamp(9rem,21vw,15rem)] font-light leading-[0.95] text-[#efece6]">
                   <BigTemperature value={outdoorModule.temperature} />
                 </p>
-                <p className="mt-4 flex flex-wrap gap-x-8 gap-y-1 text-[17px] text-[#9a9892]">
+                <p className="mt-4 flex flex-wrap justify-center gap-x-8 gap-y-1 text-[17px] text-[#9a9892]">
                   <span>Alin {formatPlainTemperature(outdoorModule.minTemperature)}</span>
                   <span>Ylin {formatPlainTemperature(outdoorModule.maxTemperature)}</span>
                   <span>Kosteus {outdoorModule.humidity !== null ? outdoorModule.humidity + ' %' : '--'}</span>
@@ -531,7 +531,17 @@ function Dashboard(props: DashboardProps) {
                         tick={{ fontSize: 12, fill: '#6f6e6a' }}
                         padding={{ left: 0, right: 0 }}
                       />
-                      <YAxis hide domain={outdoorTemperatureDomain} />
+                      <YAxis
+                        domain={outdoorTemperatureDomain}
+                        ticks={outdoorTemperatureTicks}
+                        interval={0}
+                        tickFormatter={(value: number | string) => formatTemperatureTickLabel(value, outdoorTemperatureDomain)}
+                        tick={{ fontSize: 10, fill: '#6f6e6a' }}
+                        tickLine={false}
+                        axisLine={false}
+                        width={30}
+                      />
+                      <CartesianGrid horizontal vertical={false} stroke="rgba(255,255,255,0.12)" />
                       <ReferenceLine y={0} stroke="rgba(255,255,255,0.08)" />
                       <Tooltip content={<OutdoorChartTooltip />} />
                       <Line type="monotone" dataKey="temperature" stroke={ACCENT_COLOR} strokeWidth={3} dot={false} isAnimationActive={false} />
@@ -557,7 +567,7 @@ function Dashboard(props: DashboardProps) {
         <section className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
           {indoorCards.map((card) => (
             <div key={card.id} className="text-center">
-              <p className="text-[17px] text-[#9a9892]">{card.name}</p>
+              <p className="text-[17px] font-semibold text-[#9a9892]">{card.name}</p>
               <p className="mt-4 text-[clamp(4rem,8vw,6rem)] font-light leading-none">
                 <TemperatureReading value={card.temperature} />
               </p>
