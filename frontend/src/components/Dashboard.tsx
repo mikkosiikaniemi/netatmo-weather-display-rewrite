@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { CartesianGrid, Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, CartesianGrid, Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useForecastData } from '../hooks/useForecastData'
 import { useSensorReadings } from '../hooks/useSensorReadings'
 import { useWeatherData } from '../hooks/useWeatherData'
@@ -541,8 +541,25 @@ function Dashboard(props: DashboardProps) {
                         axisLine={false}
                         width={30}
                       />
+                      <YAxis
+                        yAxisId="rain"
+                        orientation="right"
+                        domain={[0, outdoorRainAxisMax]}
+                        tick={false}
+                        tickLine={false}
+                        axisLine={false}
+                        width={0}
+                      />
                       <CartesianGrid horizontal vertical={false} stroke="rgba(255,255,255,0.12)" />
                       <ReferenceLine y={0} stroke="rgba(255,255,255,0.08)" />
+                      <Bar
+                        dataKey="rain"
+                        yAxisId="rain"
+                        fill={ACCENT_COLOR}
+                        barSize={3}
+                        shape={<RainBarShape />}
+                        isAnimationActive={false}
+                      />
                       <Tooltip content={<OutdoorChartTooltip />} />
                       <Line type="monotone" dataKey="temperature" stroke={ACCENT_COLOR} strokeWidth={3} dot={false} isAnimationActive={false} />
                       {lastOutdoorPoint ? (
@@ -1022,27 +1039,23 @@ function RainBarShape(props: {
   height?: number
   fill?: string
 }) {
-  const x = typeof props.x === 'number' ? props.x : 0
-  const y = typeof props.y === 'number' ? props.y : 0
-  const width = typeof props.width === 'number' ? props.width : 0
-  const height = typeof props.height === 'number' ? props.height : 0
+  const x = props.x ?? 0
+  const y = props.y ?? 0
+  const width = Math.max(props.width ?? 0, 3)
+  const height = props.height ?? 0
 
   if (height <= 0) {
     return null
   }
 
-  const visualWidth = 5
-  const adjustedX = x + (width - visualWidth) / 2
-
   return (
     <rect
-      x={adjustedX}
+      x={x + ((props.width ?? 0) - width) / 2}
       y={y}
-      width={visualWidth}
+      width={width}
       height={height}
       rx={1}
-      ry={1}
-      fill={props.fill || FORECAST_RAIN_COLOR}
+      fill={props.fill || ACCENT_COLOR}
     />
   )
 }
