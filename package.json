@@ -1,0 +1,7 @@
+{
+  "name": "netatmo-weather-display",
+  "private": true,
+  "scripts": {
+    "dev": "bash ./dev.sh"
+  }
+}

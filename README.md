@@ -44,9 +44,13 @@ Optionally, readings from an [IKEA TIMMERFLOTTE](https://www.ikea.com/) temperat
 
 ## Local development
 
-1. Start the backend API with `cd backend && npm run dev`.
-1. Start the frontend app in another terminal with `cd frontend && npm run dev`.
-1. Open the frontend URL shown by Vite (usually `http://localhost:5173`).
+From the project root, start both the backend API and frontend app with:
+
+```bash
+npm run dev
+```
+
+Open the frontend URL shown by Vite (usually `http://localhost:5173`). Press `Ctrl+C` to stop both servers.
 
 ## Production builds
 
