@@ -129,7 +129,7 @@ export const SensorReadingCard = React.memo(function SensorReadingCard(props: { 
         <div className="flex items-center justify-between">
           <div className="flex items-start gap-2">
             <p
-              className="text-lg font-semibold text-zinc-100"
+              className="text-sm font-semibold text-zinc-100 md:text-lg"
               title={device.latest ? 'Last seen: ' + formatLastUpdated(device.latest.receivedAt) : device.deviceId}
             >
               {device.name || device.deviceId}
@@ -160,7 +160,7 @@ export const SensorReadingCard = React.memo(function SensorReadingCard(props: { 
           </div>
         </div>
 
-        <p className="mt-2 text-7xl font-bold leading-none text-center">
+        <p className="mt-2 text-5xl font-bold leading-none text-center md:text-7xl">
           <TemperatureDisplay value={device.latest ? device.latest.temperature : null} />
         </p>
       </div>

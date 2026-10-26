@@ -151,9 +151,9 @@ const DashboardHeader = React.memo(function DashboardHeader(props: DashboardHead
 
   return (
     <section className="rounded-lg bg-zinc-950 p-5">
-      <div className="grid gap-4 grid-cols-[auto_auto_auto] items-center">
-        <p className="text-2xl md:text-5xl font-normal tracking-tight text-zinc-50">{formatDate(now)}</p>
-        <div className="relative flex items-center gap-2 justify-center self-center">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 md:grid-cols-[auto_auto_auto] md:gap-4">
+        <p className="row-start-1 col-start-1 min-w-0 whitespace-nowrap text-[clamp(1rem,5vw,1.5rem)] font-normal tracking-tight text-zinc-50 md:col-span-1 md:text-5xl">{formatDate(now)}</p>
+        <div className="relative row-start-2 col-span-2 flex items-center justify-center gap-2 justify-self-center self-center md:row-start-1 md:col-start-2 md:col-span-1">
           <button
             onClick={props.onRefresh}
             className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-zinc-800 text-zinc-400 transition-colors hover:bg-zinc-600 hover:text-zinc-200"
@@ -212,7 +212,7 @@ const DashboardHeader = React.memo(function DashboardHeader(props: DashboardHead
             </div>
           ) : null}
         </div>
-        <p className="text-2xl md:text-5xl tabular-nums text-zinc-100 justify-self-end md:text-right">{formatClock(now)}</p>
+        <p className="row-start-1 col-start-2 text-right text-[clamp(1rem,5vw,1.5rem)] tabular-nums text-zinc-100 md:col-start-3 md:text-5xl">{formatClock(now)}</p>
       </div>
     </section>
   )
@@ -265,7 +265,7 @@ const SensorCarouselControls = React.memo(function SensorCarouselControls(props:
   }
 
   return (
-    <div className="pointer-events-none absolute inset-x-2 top-1/2 z-10 flex -translate-y-1/2 justify-between">
+    <div className="sensor-carousel-controls pointer-events-none absolute inset-x-2 top-1/2 z-10 flex -translate-y-1/2 justify-between">
       <button
         type="button"
         onClick={() => scroll(-1)}
@@ -536,8 +536,9 @@ function Dashboard(props: DashboardProps) {
 
         <div className="mt-4 rounded-lg p-5 bg-zinc-950">
           {outdoorModule ? (
-            <div className="outdoor-overview-grid grid grid-cols-5 gap-4">
-              <div className="flex flex-col col-span-2">
+            <>
+              <div className="outdoor-overview-grid grid grid-cols-1 gap-2 md:grid-cols-5 md:gap-4">
+              <div className="text-data flex flex-col col-span-1 md:col-span-2">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-2">
                     <p className="text-lg font-semibold text-zinc-100" title={'Last seen: ' + formatLastSeen(outdoorModule.lastSeenAt)}>{outdoorModule.name}</p>
@@ -553,62 +554,16 @@ function Dashboard(props: DashboardProps) {
                   </div>
                 </div>
                 <div className="flex flex-1 items-center justify-center">
-                  <p className="text-center text-[clamp(6.25rem,19vw,11.5rem)] font-bold leading-none text-zinc-100">
+                  <p className="text-center text-[clamp(2.75rem,14vw,4.5rem)] font-bold leading-none text-zinc-100 md:text-[clamp(6.25rem,19vw,11.5rem)]">
                     <TemperatureReading value={outdoorModule.temperature} />
                   </p>
                 </div>
 
-                <div className="mt-auto flex items-center justify-center gap-4 text-sm text-zinc-300">
-                  <span
-                    className="inline-flex items-center gap-1"
-                    title={
-                      'Min: ' +
-                      (outdoorModule.minTemperature !== null ? outdoorModule.minTemperature.toFixed(1) + '°' : '--')
-                    }
-                  >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4 text-zinc-400 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M7 10 12 15 17 10" />
-                    </svg>
-                    <span>{outdoorModule.minTemperature !== null ? outdoorModule.minTemperature.toFixed(1) + '°' : '--'}</span>
-                  </span>
-                  <span
-                    className="inline-flex items-center gap-1"
-                    title={
-                      'Max: ' +
-                      (outdoorModule.maxTemperature !== null ? outdoorModule.maxTemperature.toFixed(1) + '°' : '--')
-                    }
-                  >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4 text-zinc-400 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M7 14 12 9l5 5" />
-                    </svg>
-                    <span>{outdoorModule.maxTemperature !== null ? outdoorModule.maxTemperature.toFixed(1) + '°' : '--'}</span>
-                  </span>
-                  {hasOutdoorRainToday ? (
-                    <span
-                      className="inline-flex items-center gap-1"
-                      title={'Rain today: ' + outdoorRainTodayAmount.toFixed(1) + ' mm'}
-                    >
-                      <svg viewBox="0 0 24 24" className="h-4 w-4 text-zinc-400 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M12 3C9 7 6 10 6 14a6 6 0 0 0 12 0c0-4-3-7-6-11Z" />
-                      </svg>
-                      <span>{outdoorRainTodayAmount.toFixed(1) + ' mm'}</span>
-                    </span>
-                  ) : null}
-                  <span
-                    className="inline-flex items-center gap-1"
-                    title={outdoorModule.humidity !== null ? 'Humidity: ' + outdoorModule.humidity + '%' : 'Humidity unavailable'}
-                  >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4 text-zinc-400 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 3C9 7 6 10 6 14a6 6 0 0 0 12 0c0-4-3-7-6-11Z" />
-                    </svg>
-                    <span>{outdoorModule.humidity !== null ? outdoorModule.humidity + '%' : '--'}</span>
-                  </span>
-                </div>
               </div>
 
-              <div className="outdoor-chart-panel rounded-lg bg-zinc-950 px-4 -mb-3 col-span-3">
+              <div className="outdoor-chart-panel min-w-0 col-span-1 md:col-span-3">
                 {outdoorChartData.length > 0 ? (
-                  <div className="-mx-2 h-60">
+                  <div className="-mx-2 h-36 md:h-60">
                     <ResponsiveContainer width="100%" height="100%" debounce={120}>
                       <ComposedChart data={outdoorChartData} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
                         <defs>
@@ -726,7 +681,54 @@ function Dashboard(props: DashboardProps) {
                   </p>
                 )}
               </div>
-            </div>
+              </div>
+              <div className="outdoor-overview-stats mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-zinc-800 pt-3 text-sm text-zinc-300">
+              <span
+                className="inline-flex items-center gap-1"
+                title={
+                  'Min: ' +
+                  (outdoorModule.minTemperature !== null ? outdoorModule.minTemperature.toFixed(1) + '°' : '--')
+                }
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4 text-zinc-400 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M7 10 12 15 17 10" />
+                </svg>
+                <span>{outdoorModule.minTemperature !== null ? outdoorModule.minTemperature.toFixed(1) + '°' : '--'}</span>
+              </span>
+              <span
+                className="inline-flex items-center gap-1"
+                title={
+                  'Max: ' +
+                  (outdoorModule.maxTemperature !== null ? outdoorModule.maxTemperature.toFixed(1) + '°' : '--')
+                }
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4 text-zinc-400 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M7 14 12 9l5 5" />
+                </svg>
+                <span>{outdoorModule.maxTemperature !== null ? outdoorModule.maxTemperature.toFixed(1) + '°' : '--'}</span>
+              </span>
+              {hasOutdoorRainToday ? (
+                <span
+                  className="inline-flex items-center gap-1"
+                  title={'Rain today: ' + outdoorRainTodayAmount.toFixed(1) + ' mm'}
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 text-zinc-400 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 3C9 7 6 10 6 14a6 6 0 0 0 12 0c0-4-3-7-6-11Z" />
+                  </svg>
+                  <span>{outdoorRainTodayAmount.toFixed(1) + ' mm'}</span>
+                </span>
+              ) : null}
+              <span
+                className="inline-flex items-center gap-1"
+                title={outdoorModule.humidity !== null ? 'Humidity: ' + outdoorModule.humidity + '%' : 'Humidity unavailable'}
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4 text-zinc-400 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 3C9 7 6 10 6 14a6 6 0 0 0 12 0c0-4-3-7-6-11Z" />
+                </svg>
+                <span>{outdoorModule.humidity !== null ? outdoorModule.humidity + '%' : '--'}</span>
+              </span>
+              </div>
+            </>
           ) : (
             <p className="mt-3 text-zinc-400">Outdoor module not found.</p>
           )}
@@ -753,7 +755,7 @@ function Dashboard(props: DashboardProps) {
 								<div className="text-data">
 									<div className="flex items-center justify-between">
 										<div className="flex items-start gap-2">
-											<p className="text-lg font-semibold text-zinc-100" title={'Last seen: ' + formatLastSeen(module.lastSeenAt)}>{module.name}</p>
+							<p className="text-sm font-semibold text-zinc-100 md:text-lg" title={'Last seen: ' + formatLastSeen(module.lastSeenAt)}>{module.name}</p>
 											{moduleHistoryFetchFailed ? (
 												<HistoryWarningIcon
 													message={
@@ -778,7 +780,7 @@ function Dashboard(props: DashboardProps) {
 										</div>
 									</div>
 
-									<p className="mt-2 text-7xl font-bold leading-none text-center">
+									<p className="mt-2 text-5xl font-bold leading-none text-center md:text-7xl">
 										<TemperatureReading value={module.temperature} />
 									</p>
 								</div>
@@ -876,7 +878,7 @@ function Dashboard(props: DashboardProps) {
           {forecastQuery.isLoading ? <p className="mt-3 text-zinc-400">Loading forecast...</p> : null}
           {forecastQuery.isError ? <p className="mt-3 text-rose-300">Forecast unavailable right now.</p> : null}
           {forecastQuery.data ? (
-            <div className="mt-4 flex gap-4">
+            <div className="forecast-container mt-4 flex gap-4">
               {forecastDayGroups.map((dayGroup) => (
                 <div
                   key={dayGroup.dayStartTimestamp}
