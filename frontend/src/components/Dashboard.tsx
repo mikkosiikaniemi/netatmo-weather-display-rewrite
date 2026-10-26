@@ -227,6 +227,9 @@ function Dashboard(props: DashboardProps) {
     () => groupReadingsByDevice(sensorQuery.data ? sensorQuery.data.readings : []),
     [sensorQuery.data]
   )
+  const sensorCarouselRef = useRef<HTMLDivElement>(null)
+  const [canScrollSensorsLeft, setCanScrollSensorsLeft] = useState(false)
+  const [canScrollSensorsRight, setCanScrollSensorsRight] = useState(false)
   const stations = weatherQuery.data ? weatherQuery.data.stations : []
   const selectedStation = stations.length > 0 ? stations[0] : null
   const selectedStationId = selectedStation ? selectedStation.id : null
@@ -280,6 +283,40 @@ function Dashboard(props: DashboardProps) {
   const stationModules = selectedStation ? selectedStation.modules : []
   const outdoorModule = stationModules.find((module) => module.type === 'outdoor') || null
   const indoorModules = stationModules.filter((module) => module.type === 'indoor')
+  const sensorCardCount = indoorModules.length + sensorDevices.length
+
+  useEffect(() => {
+    const carousel = sensorCarouselRef.current
+    if (!carousel) {
+      return
+    }
+
+    const updateControls = () => {
+      setCanScrollSensorsLeft(carousel.scrollLeft > 1)
+      setCanScrollSensorsRight(carousel.scrollLeft + carousel.clientWidth < carousel.scrollWidth - 1)
+    }
+
+    updateControls()
+    carousel.addEventListener('scroll', updateControls, { passive: true })
+    window.addEventListener('resize', updateControls)
+
+    return () => {
+      carousel.removeEventListener('scroll', updateControls)
+      window.removeEventListener('resize', updateControls)
+    }
+  }, [sensorCardCount])
+
+  const scrollSensorCarousel = (direction: -1 | 1) => {
+    const carousel = sensorCarouselRef.current
+    const firstCard = carousel && (carousel.firstElementChild as HTMLElement | null)
+    if (!carousel || !firstCard) {
+      return
+    }
+
+    const gap = parseFloat(window.getComputedStyle(carousel).columnGap) || 0
+    carousel.scrollBy({ left: direction * (firstCard.offsetWidth + gap), behavior: 'smooth' })
+  }
+
   const failedHistoryModuleIds = useMemo(
     () => new Set(effectiveHistoryData ? effectiveHistoryData.failedModuleIds : []),
     [effectiveHistoryData]
@@ -445,10 +482,6 @@ function Dashboard(props: DashboardProps) {
 
     return capForecastGroupsToPointLimit(compactedGroups, FORECAST_MAX_POINTS)
   }, [forecastQuery.data])
-  const indoorGridStyle = useMemo(
-    () => ({ ['--indoor-modules-count' as string]: String(Math.max(indoorModules.length + sensorDevices.length, 1)) }) as React.CSSProperties,
-    [indoorModules.length, sensorDevices.length]
-  )
   return (
     <div className="min-h-screen bg-black text-zinc-100">
       <div className="mx-auto w-full max-w-7xl px-4 py-4">
@@ -659,7 +692,42 @@ function Dashboard(props: DashboardProps) {
           )}
         </div>
 
-        <div className="indoor-modules-grid mt-4 grid grid-cols-1 gap-4" style={indoorGridStyle}>
+        <div className="mt-4">
+          {sensorCardCount > 3 ? (
+            <div className="mb-1 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => scrollSensorCarousel(-1)}
+                disabled={!canScrollSensorsLeft}
+                aria-label="Show previous sensors"
+                aria-controls="indoor-sensor-carousel"
+                className="rounded-full border border-zinc-700 bg-zinc-900 p-1 text-zinc-200 transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollSensorCarousel(1)}
+                disabled={!canScrollSensorsRight}
+                aria-label="Show next sensors"
+                aria-controls="indoor-sensor-carousel"
+                className="rounded-full border border-zinc-700 bg-zinc-900 p-1 text-zinc-200 transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </button>
+            </div>
+          ) : null}
+          <div
+            id="indoor-sensor-carousel"
+            ref={sensorCarouselRef}
+            className="indoor-modules-grid grid grid-cols-1 gap-4"
+            role="region"
+            aria-label="Indoor and Terassi sensors"
+          >
             {indoorModules.map((module) => {
               const moduleHistory = indoorHistoryById[module.id] || null
               const moduleSeries = indoorSeriesById[module.id] || []
@@ -788,6 +856,7 @@ function Dashboard(props: DashboardProps) {
             {sensorDevices.map((device) => (
               <SensorReadingCard key={device.deviceId} device={device} dayWindow={dayWindow} evenHourTicks={evenHourTicks} />
             ))}
+          </div>
         </div>
 
         <div className="mt-4">

@@ -95,10 +95,18 @@
 	font-variant-numeric: tabular-nums;
 }
 
-@media (min-width: 768px) {
-	.indoor-modules-grid {
-		grid-template-columns: repeat(var(--indoor-modules-count, 1), minmax(0, 1fr)) !important;
-	}
+.indoor-modules-grid {
+	grid-auto-flow: column;
+	grid-auto-columns: calc((100% - 2rem) / 3);
+	grid-template-columns: none !important;
+	grid-template-rows: minmax(0, 1fr);
+	overflow: hidden;
+	scroll-behavior: smooth;
+	scroll-snap-type: x mandatory;
+}
+
+.indoor-modules-grid > * {
+	scroll-snap-align: start;
 }
 
 .forecast-grid {
