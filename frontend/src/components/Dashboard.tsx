@@ -12,7 +12,6 @@ const QUERY_REFETCH_INTERVAL_MS = 10.5 * 60 * 1000
 const TEMP_COLOR = '#ff3b30'
 const HUMIDITY_COLOR = '#00b8ff'
 const FORECAST_RAIN_COLOR = 'hsla(197, 100%, 60%, 0.98)'
-const FORECAST_DAYS_TO_SHOW = 3
 const FORECAST_MAX_POINTS = 20
 const FORECAST_TIME_ZONE = 'Europe/Helsinki'
 
@@ -516,12 +515,10 @@ function Dashboard(props: DashboardProps) {
       previousGroup.points.push(point)
     })
 
-    const compactedGroups = groups
-      .slice(0, FORECAST_DAYS_TO_SHOW)
-      .map((group) => ({
-        dayStartTimestamp: group.dayStartTimestamp,
-        points: group.points,
-      }))
+    const compactedGroups = groups.map((group) => ({
+      dayStartTimestamp: group.dayStartTimestamp,
+      points: group.points,
+    }))
 
     return capForecastGroupsToPointLimit(compactedGroups, FORECAST_MAX_POINTS)
   }, [forecastQuery.data])
