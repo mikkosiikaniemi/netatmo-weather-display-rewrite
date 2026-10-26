@@ -219,6 +219,82 @@ const DashboardHeader = React.memo(function DashboardHeader(props: DashboardHead
   )
 })
 
+const SensorCarouselControls = React.memo(function SensorCarouselControls(props: {
+  carouselRef: React.RefObject<HTMLDivElement>
+  cardCount: number
+}) {
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  useEffect(() => {
+    const carousel = props.carouselRef.current
+    if (!carousel) {
+      return
+    }
+
+    const updateControls = () => {
+      const nextCanScrollLeft = carousel.scrollLeft > 1
+      const nextCanScrollRight = carousel.scrollLeft + carousel.clientWidth < carousel.scrollWidth - 1
+
+      setCanScrollLeft((previousValue) => previousValue === nextCanScrollLeft ? previousValue : nextCanScrollLeft)
+      setCanScrollRight((previousValue) => previousValue === nextCanScrollRight ? previousValue : nextCanScrollRight)
+    }
+
+    updateControls()
+    carousel.addEventListener('scroll', updateControls, { passive: true })
+    window.addEventListener('resize', updateControls)
+
+    return () => {
+      carousel.removeEventListener('scroll', updateControls)
+      window.removeEventListener('resize', updateControls)
+    }
+  }, [props.carouselRef, props.cardCount])
+
+  const scroll = (direction: -1 | 1) => {
+    const carousel = props.carouselRef.current
+    const firstCard = carousel && (carousel.firstElementChild as HTMLElement | null)
+    if (!carousel || !firstCard) {
+      return
+    }
+
+    const gap = parseFloat(window.getComputedStyle(carousel).columnGap) || 0
+    carousel.scrollBy({ left: direction * (firstCard.offsetWidth + gap), behavior: 'smooth' })
+  }
+
+  if (props.cardCount <= 3) {
+    return null
+  }
+
+  return (
+    <div className="pointer-events-none absolute inset-x-2 top-1/2 z-10 flex -translate-y-1/2 justify-between">
+      <button
+        type="button"
+        onClick={() => scroll(-1)}
+        disabled={!canScrollLeft}
+        aria-label="Show previous sensors"
+        aria-controls="indoor-sensor-carousel"
+        className="pointer-events-auto rounded-full border border-zinc-700 bg-zinc-900/95 p-1 text-zinc-200 shadow-lg transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-35"
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        onClick={() => scroll(1)}
+        disabled={!canScrollRight}
+        aria-label="Show next sensors"
+        aria-controls="indoor-sensor-carousel"
+        className="pointer-events-auto rounded-full border border-zinc-700 bg-zinc-900/95 p-1 text-zinc-200 shadow-lg transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-35"
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </button>
+    </div>
+  )
+})
+
 function Dashboard(props: DashboardProps) {
   const weatherQuery = useWeatherData()
   const forecastQuery = useForecastData()
@@ -228,8 +304,6 @@ function Dashboard(props: DashboardProps) {
     [sensorQuery.data]
   )
   const sensorCarouselRef = useRef<HTMLDivElement>(null)
-  const [canScrollSensorsLeft, setCanScrollSensorsLeft] = useState(false)
-  const [canScrollSensorsRight, setCanScrollSensorsRight] = useState(false)
   const stations = weatherQuery.data ? weatherQuery.data.stations : []
   const selectedStation = stations.length > 0 ? stations[0] : null
   const selectedStationId = selectedStation ? selectedStation.id : null
@@ -284,38 +358,6 @@ function Dashboard(props: DashboardProps) {
   const outdoorModule = stationModules.find((module) => module.type === 'outdoor') || null
   const indoorModules = stationModules.filter((module) => module.type === 'indoor')
   const sensorCardCount = indoorModules.length + sensorDevices.length
-
-  useEffect(() => {
-    const carousel = sensorCarouselRef.current
-    if (!carousel) {
-      return
-    }
-
-    const updateControls = () => {
-      setCanScrollSensorsLeft(carousel.scrollLeft > 1)
-      setCanScrollSensorsRight(carousel.scrollLeft + carousel.clientWidth < carousel.scrollWidth - 1)
-    }
-
-    updateControls()
-    carousel.addEventListener('scroll', updateControls, { passive: true })
-    window.addEventListener('resize', updateControls)
-
-    return () => {
-      carousel.removeEventListener('scroll', updateControls)
-      window.removeEventListener('resize', updateControls)
-    }
-  }, [sensorCardCount])
-
-  const scrollSensorCarousel = (direction: -1 | 1) => {
-    const carousel = sensorCarouselRef.current
-    const firstCard = carousel && (carousel.firstElementChild as HTMLElement | null)
-    if (!carousel || !firstCard) {
-      return
-    }
-
-    const gap = parseFloat(window.getComputedStyle(carousel).columnGap) || 0
-    carousel.scrollBy({ left: direction * (firstCard.offsetWidth + gap), behavior: 'smooth' })
-  }
 
   const failedHistoryModuleIds = useMemo(
     () => new Set(effectiveHistoryData ? effectiveHistoryData.failedModuleIds : []),
@@ -439,7 +481,8 @@ function Dashboard(props: DashboardProps) {
     [outdoorTemperatureDomain]
   )
 
-  const dayWindow = useMemo(() => getDayWindow(new Date()), [weatherQuery.data, historyQuery.data])
+  const currentDayKey = new Date().toDateString()
+  const dayWindow = useMemo(() => getDayWindow(new Date()), [currentDayKey])
   const evenHourTicks = useMemo(() => buildEvenHourTicks(dayWindow.start, dayWindow.end), [dayWindow])
   const indoorTemperatureDomain = useMemo(
     () => getSharedIndoorTemperatureDomain(indoorModules, indoorHistoryById),
@@ -693,34 +736,7 @@ function Dashboard(props: DashboardProps) {
         </div>
 
         <div className="relative mt-4">
-          {sensorCardCount > 3 ? (
-            <div className="pointer-events-none absolute inset-x-2 top-1/2 z-10 flex -translate-y-1/2 justify-between">
-              <button
-                type="button"
-                onClick={() => scrollSensorCarousel(-1)}
-                disabled={!canScrollSensorsLeft}
-                aria-label="Show previous sensors"
-                aria-controls="indoor-sensor-carousel"
-                className="pointer-events-auto rounded-full border border-zinc-700 bg-zinc-900/95 p-1 text-zinc-200 shadow-lg transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-35"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m15 18-6-6 6-6" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollSensorCarousel(1)}
-                disabled={!canScrollSensorsRight}
-                aria-label="Show next sensors"
-                aria-controls="indoor-sensor-carousel"
-                className="pointer-events-auto rounded-full border border-zinc-700 bg-zinc-900/95 p-1 text-zinc-200 shadow-lg transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-35"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
-              </button>
-            </div>
-          ) : null}
+          <SensorCarouselControls carouselRef={sensorCarouselRef} cardCount={sensorCardCount} />
           <div
             id="indoor-sensor-carousel"
             ref={sensorCarouselRef}
@@ -1368,8 +1384,12 @@ function applyLegacyForecastScopeRendering<T extends { timestamp: number }>(
   nowMs: number,
   timeZone: string
 ) {
+  const referenceDate = new Date(nowMs)
+  const todayStartMs = getStartOfDayMsInTimeZone(timeZone, 0, referenceDate)
+  const tomorrowStartMs = getStartOfDayMsInTimeZone(timeZone, 1, referenceDate)
+
   return points.filter((point) => {
-    const scope = getLegacyForecastScope(nowMs, point.timestamp, timeZone)
+    const scope = getLegacyForecastScope(nowMs, point.timestamp, todayStartMs, tomorrowStartMs)
 
     if (scope !== 'next_6_hours') {
       return true
@@ -1382,11 +1402,9 @@ function applyLegacyForecastScopeRendering<T extends { timestamp: number }>(
 function getLegacyForecastScope(
   nowMs: number,
   datapointTimestampMs: number,
-  timeZone: string
+  todayStartMs: number,
+  tomorrowStartMs: number
 ): 'next_1_hours' | 'next_6_hours' {
-  const todayStartMs = getStartOfDayMsInTimeZone(timeZone, 0, new Date(nowMs))
-  const tomorrowStartMs = getStartOfDayMsInTimeZone(timeZone, 1, new Date(nowMs))
-
   const today09Ms = todayStartMs + 9 * 60 * 60 * 1000
   const today16Ms = todayStartMs + 16 * 60 * 60 * 1000
   const today19Ms = todayStartMs + 19 * 60 * 60 * 1000
@@ -1431,16 +1449,7 @@ function getTimeZoneOffsetMinutes(date: Date, timeZone: string) {
 }
 
 function getZonedDateParts(date: Date, timeZone: string, includeTime: boolean = false) {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: includeTime ? '2-digit' : undefined,
-    minute: includeTime ? '2-digit' : undefined,
-    second: includeTime ? '2-digit' : undefined,
-    hour12: false,
-  })
+  const formatter = getZonedDateFormatter(timeZone, includeTime)
   const parts = formatter.formatToParts(date)
   const mapped = parts.reduce((acc, part) => {
     if (part.type !== 'literal') {
@@ -1457,6 +1466,29 @@ function getZonedDateParts(date: Date, timeZone: string, includeTime: boolean = 
     minute: Number(mapped.minute || 0),
     second: Number(mapped.second || 0),
   }
+}
+
+const zonedDateFormatters = new Map<string, Intl.DateTimeFormat>()
+
+function getZonedDateFormatter(timeZone: string, includeTime: boolean) {
+  const key = timeZone + ':' + includeTime
+  const cachedFormatter = zonedDateFormatters.get(key)
+  if (cachedFormatter) {
+    return cachedFormatter
+  }
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: includeTime ? '2-digit' : undefined,
+    minute: includeTime ? '2-digit' : undefined,
+    second: includeTime ? '2-digit' : undefined,
+    hour12: false,
+  })
+  zonedDateFormatters.set(key, formatter)
+  return formatter
 }
 
 function capForecastGroupsToPointLimit<T>(

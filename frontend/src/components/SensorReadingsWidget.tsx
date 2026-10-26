@@ -118,7 +118,7 @@ function getSharedSensorHumidityDomain(todayPoints: SensorChartDatum[]): [number
   return [minValue, 100]
 }
 
-export function SensorReadingCard(props: { device: SensorDevice; dayWindow: { start: number; end: number }; evenHourTicks: number[] }) {
+export const SensorReadingCard = React.memo(function SensorReadingCard(props: { device: SensorDevice; dayWindow: { start: number; end: number }; evenHourTicks: number[] }) {
   const { device, dayWindow, evenHourTicks } = props
   const hasPoints = device.points.length > 0
   const chartData = useMemo(() => buildSensorChartData(device.points, dayWindow, evenHourTicks), [device.points, dayWindow, evenHourTicks])
@@ -255,7 +255,7 @@ export function SensorReadingCard(props: { device: SensorDevice; dayWindow: { st
       )}
     </article>
   )
-}
+})
 
 function SensorChartTooltip(props: {
   active?: boolean
