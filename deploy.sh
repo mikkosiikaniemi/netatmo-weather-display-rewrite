@@ -75,6 +75,8 @@ done
 echo "[deploy] Installing dependencies and building locally"
 (cd "$SCRIPT_DIR/frontend" && npm ci --userconfig="$SCRIPT_DIR/.npmrc")
 (cd "$SCRIPT_DIR/backend" && npm ci --userconfig="$SCRIPT_DIR/.npmrc")
+(cd "$SCRIPT_DIR/frontend" && npm audit --audit-level=low)
+(cd "$SCRIPT_DIR/backend" && npm audit --audit-level=low)
 npm --prefix "$SCRIPT_DIR/frontend" run build
 npm --prefix "$SCRIPT_DIR/backend" run build
 
