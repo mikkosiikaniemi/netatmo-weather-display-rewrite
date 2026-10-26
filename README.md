@@ -189,6 +189,7 @@ Optional environment variables:
 
 - `OPALSTACK_PROJECT_DIR` (default is `<OPALSTACK_APP_ROOT>/<local-repo-folder>`)
 - `OPALSTACK_NODE_SCL` (default is `nodejs20`)
+- `DEPLOY_FRONTEND_ONLY=true` or `false` to select the deployment mode without an interactive prompt
 
 Run from repository root:
 
@@ -214,6 +215,12 @@ You can also point to a custom file path:
 DEPLOY_ENV_FILE=/path/to/custom.deploy.env ./deploy.sh
 ```
 
+When run interactively, `deploy.sh` asks whether to deploy only the frontend (default: full deployment). To choose frontend-only without a prompt, use:
+
+```bash
+DEPLOY_FRONTEND_ONLY=true ./deploy.sh
+```
+
 The script will:
 
 1. Install dependencies and build the frontend and backend locally.
@@ -221,6 +228,8 @@ The script will:
 1. Preserve `backend/.env` and `backend/data/` on the server.
 1. Install only backend runtime dependencies on Opalstack.
 1. Restart the app via Opalstack `stop` and `start` scripts when available.
+
+With `DEPLOY_FRONTEND_ONLY=true`, it builds and syncs only `frontend/dist/`; it does not sync backend files, install backend dependencies, or restart the app.
 
 ## Credits
 

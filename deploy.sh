@@ -28,6 +28,7 @@ OPALSTACK_SSH="${OPALSTACK_SSH:-}"
 OPALSTACK_APP_ROOT="${OPALSTACK_APP_ROOT:-}"
 OPALSTACK_PROJECT_DIR="${OPALSTACK_PROJECT_DIR:-}"
 OPALSTACK_NODE_SCL="${OPALSTACK_NODE_SCL:-nodejs20}"
+DEPLOY_FRONTEND_ONLY="${DEPLOY_FRONTEND_ONLY:-}"
 
 if [ -z "$OPALSTACK_SSH" ] || [ -z "$OPALSTACK_APP_ROOT" ]; then
   cat <<'EOF'
@@ -40,6 +41,7 @@ Required:
 Optional:
   OPALSTACK_PROJECT_DIR  Remote project dir (default: <OPALSTACK_APP_ROOT>/<repo-folder>)
   OPALSTACK_NODE_SCL     Node SCL name to enable on Opalstack (default: nodejs20)
+  DEPLOY_FRONTEND_ONLY   Set to true/false to select the deployment mode without prompting
   DEPLOY_ENV_FILE        Path to env file to load first (default: .env.deploy in repo root)
 
 Example:
@@ -65,12 +67,48 @@ echo "[deploy] Remote SSH target: $OPALSTACK_SSH"
 echo "[deploy] Remote app root: $OPALSTACK_APP_ROOT"
 echo "[deploy] Remote project dir: $OPALSTACK_PROJECT_DIR"
 
+if [ -z "$DEPLOY_FRONTEND_ONLY" ] && [ -t 0 ]; then
+  read -r -p "Deploy frontend only? [y/N] " frontend_only_answer || frontend_only_answer=""
+  case "${frontend_only_answer,,}" in
+    y|yes) DEPLOY_FRONTEND_ONLY=true ;;
+    *) DEPLOY_FRONTEND_ONLY=false ;;
+  esac
+else
+  case "${DEPLOY_FRONTEND_ONLY,,}" in
+    1|true|yes) DEPLOY_FRONTEND_ONLY=true ;;
+    *) DEPLOY_FRONTEND_ONLY=false ;;
+  esac
+fi
+
+if [ "$DEPLOY_FRONTEND_ONLY" = true ]; then
+  echo "[deploy] Mode: frontend only"
+else
+  echo "[deploy] Mode: full deployment"
+fi
+
 for cmd in npm ssh rsync; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "[deploy] Error: '$cmd' is required but not installed locally."
     exit 1
   fi
 done
+
+if [ "$DEPLOY_FRONTEND_ONLY" = true ]; then
+  echo "[deploy] Building frontend only"
+  (cd "$SCRIPT_DIR/frontend" && npm ci --userconfig="$SCRIPT_DIR/.npmrc")
+  (cd "$SCRIPT_DIR/frontend" && npm audit --audit-level=low)
+  npm --prefix "$SCRIPT_DIR/frontend" run build
+
+  echo "[deploy] Ensuring remote frontend directory exists"
+  ssh "$OPALSTACK_SSH" "mkdir -p '$OPALSTACK_PROJECT_DIR/frontend/dist'"
+
+  echo "[deploy] Syncing frontend assets to Opalstack"
+  rsync -az --delete \
+    "$SCRIPT_DIR/frontend/dist/" "$OPALSTACK_SSH:$OPALSTACK_PROJECT_DIR/frontend/dist/"
+
+  echo "[deploy] Frontend deployment completed; backend was not restarted"
+  exit 0
+fi
 
 echo "[deploy] Installing dependencies and building locally"
 (cd "$SCRIPT_DIR/frontend" && npm ci --userconfig="$SCRIPT_DIR/.npmrc")
