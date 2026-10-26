@@ -692,16 +692,16 @@ function Dashboard(props: DashboardProps) {
           )}
         </div>
 
-        <div className="mt-4">
+        <div className="relative mt-4">
           {sensorCardCount > 3 ? (
-            <div className="mb-1 flex justify-end gap-2">
+            <div className="pointer-events-none absolute inset-x-2 top-1/2 z-10 flex -translate-y-1/2 justify-between">
               <button
                 type="button"
                 onClick={() => scrollSensorCarousel(-1)}
                 disabled={!canScrollSensorsLeft}
                 aria-label="Show previous sensors"
                 aria-controls="indoor-sensor-carousel"
-                className="rounded-full border border-zinc-700 bg-zinc-900 p-1 text-zinc-200 transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-35"
+                className="pointer-events-auto rounded-full border border-zinc-700 bg-zinc-900/95 p-1 text-zinc-200 shadow-lg transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-35"
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="m15 18-6-6 6-6" />
@@ -713,7 +713,7 @@ function Dashboard(props: DashboardProps) {
                 disabled={!canScrollSensorsRight}
                 aria-label="Show next sensors"
                 aria-controls="indoor-sensor-carousel"
-                className="rounded-full border border-zinc-700 bg-zinc-900 p-1 text-zinc-200 transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-35"
+                className="pointer-events-auto rounded-full border border-zinc-700 bg-zinc-900/95 p-1 text-zinc-200 shadow-lg transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-35"
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="m9 18 6-6-6-6" />
