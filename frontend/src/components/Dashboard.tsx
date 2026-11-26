@@ -419,6 +419,10 @@ function Dashboard(props: DashboardProps) {
 
     return mapPreviousDayTemperatureSeries(outdoorHistory)
   }, [outdoorHistory])
+  const outdoorPreviousDayTemperatureColorData = useMemo(
+    () => splitOutdoorTemperaturesAtZero(outdoorPreviousDayChartData),
+    [outdoorPreviousDayChartData]
+  )
   const outdoorTemperatureDomain = useMemo(() => {
     const chartTemperatureValues = outdoorChartData
       .map((point) => point.temperature)
@@ -684,10 +688,22 @@ function Dashboard(props: DashboardProps) {
                         <Line
                           yAxisId="temp"
                           type="monotone"
-                          data={outdoorPreviousDayChartData}
-                          dataKey="temperature"
+                          data={outdoorPreviousDayTemperatureColorData}
+                          dataKey="temperatureAboveZero"
                           name="Temp yesterday"
                           stroke={TEMP_COLOR}
+                          strokeWidth={1.7}
+                          strokeOpacity={0.5}
+                          dot={false}
+                          isAnimationActive={false}
+                        />
+                        <Line
+                          yAxisId="temp"
+                          type="monotone"
+                          data={outdoorPreviousDayTemperatureColorData}
+                          dataKey="temperatureBelowZero"
+                          name="Temp yesterday"
+                          stroke={HUMIDITY_COLOR}
                           strokeWidth={1.7}
                           strokeOpacity={0.5}
                           dot={false}
@@ -1148,11 +1164,11 @@ function mergeOutdoorSeries(module: ModuleHistory) {
   })
 }
 
-function splitOutdoorTemperaturesAtZero(
-  points: ReturnType<typeof mergeOutdoorSeries>
+function splitOutdoorTemperaturesAtZero<T extends { timestamp: number; temperature: number | null }>(
+  points: T[]
 ) {
   const result: Array<
-    (typeof points)[number] & {
+    T & {
       temperatureAboveZero: number | null
       temperatureBelowZero: number | null
     }
